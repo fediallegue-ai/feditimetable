@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0A0A">
+<title>ASCENT</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: #0A0A0A; }
+  body { font-family: 'IBM Plex Mono', ui-monospace, monospace; color: #EDEBE6; }
+  button { font-family: inherit; cursor: pointer; }
+  input, select { font-family: inherit; }
+  input[type="date"] { -webkit-appearance: none; appearance: none; }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); }
+  .asc-display { font-family: 'Anton', Impact, sans-serif; letter-spacing: 0.01em; font-weight: 400; }
+  .asc-mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+  .asc-questbtn { transition: transform .15s ease, border-color .15s ease; }
+  .asc-questbtn:active { transform: scale(.97); }
+  .asc-questbtn:disabled { opacity: .35; cursor: not-allowed; }
+  .asc-bar-fill { transition: width .5s ease; }
+  @keyframes ascFlash {
+    0% { opacity: 0; transform: translateY(6px) scale(.96); }
+    15% { opacity: 1; transform: translateY(0) scale(1); }
+    85% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-6px) scale(.98); }
+  }
+  .asc-flash { animation: ascFlash 2.2s ease forwards; }
+  .asc-scroll::-webkit-scrollbar { display: none; }
+  .asc-scroll { scrollbar-width: none; }
+  .asc-select, .asc-datein {
+    background: #0A0A0A; border: 1px solid #2A2A2A; color: #EDEBE6;
+    border-radius: 3px; padding: 8px 9px; font-size: 12px; width: 100%;
+  }
+  #root { min-height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+
+<script>
+(function () {
+  "use strict";
+
+  var e = React.createElement;
+  var useState = React.useState, useEffect = React.useEffect, useRef = React.useRef;
+
+  /* ---------------- icons (inline svg, no dependency) ---------------- */
+
+  function Icon(props) {
+    var paths = props.paths, size = props.size || 14, color = props.color || "currentColor";
+    return e("svg", {
+      width: size, height: size, viewBox: "0 0 24 24", fill: "none",
+      stroke: color, strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round",
+      style: { flexShrink: 0, display: "block" }
+    }, paths.map(function (d, i) {
+      if (typeof d === "string") return e("path", { key: i, d: d });
+      return e(d.t, Object.assign({ key: i }, d.a));
+    }));
+  }
+  function mk(paths) {
+    return function (p) { return e(Icon, { paths: paths, size: p.size, color: p.color }); };
+  }
+
+  var ISparkles = mk(["M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"]);
+  var IBook = mk(["M4 19.5A2.5 2.5 0 0 1 6.5 17H20", "M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"]);
+  var IHammer = mk(["M15 12l-8.5 8.5a2.1 2.1 0 0 1-3-3L12 9", "M17.6 6.4l-4.2 4.2", "M14 3l7 7-2.5 2.5-7-7L14 3z"]);
+  var IDumbbell = mk(["M6.5 6.5v11", "M17.5 6.5v11", "M3 9v6", "M21 9v6", "M6.5 12h11"]);
+  var IBookmark = mk(["M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"]);
+  var IUsers = mk(["M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2", { t: "circle", a: { cx: 9, cy: 7, r: 4 } }, "M23 21v-2a4 4 0 0 0-3-3.87", "M16 3.13a4 4 0 0 1 0 7.75"]);
+  var IChevron = mk(["M9 18l6-6-6-6"]);
+  var ICheck = mk(["M20 6L9 17l-5-5"]);
+  var IClock = mk([{ t: "circle", a: { cx: 12, cy: 12, r: 10 } }, "M12 6v6l4 2"]);
+  var IPin = mk(["M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z", { t: "circle", a: { cx: 12, cy: 10, r: 3 } }]);
+  var IHome = mk(["M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"]);
+  var IX = mk(["M18 6L6 18", "M6 6l12 12"]);
+  var IFlame = mk(["M12 2c1 4-3 5-3 9a3 3 0 0 0 6 0c0-1-.5-2-.5-2 2 1.5 3.5 3.5 3.5 6a6 6 0 0 1-12 0c0-5 6-7 6-13z"]);
+  var IPlus = mk(["M12 5v14", "M5 12h14"]);
+  var ITrash = mk(["M3 6h18", "M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2", "M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"]);
+  var ICalendar = mk([{ t: "rect", a: { x: 3, y: 4, width: 18, height: 18, rx: 2 } }, "M16 2v4", "M8 2v4", "M3 10h18"]);
+  var IClipboard = mk(["M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2", { t: "rect", a: { x: 8, y: 2, width: 8, height: 4, rx: 1 } }]);
+  var ITarget = mk([{ t: "circle", a: { cx: 12, cy: 12, r: 10 } }, { t: "circle", a: { cx: 12, cy: 12, r: 6 } }, { t: "circle", a: { cx: 12, cy: 12, r: 2 } }]);
+
+  /* ---------------- static data ---------------- */
+
+  var DAYS = [
+    { key: "mon", label: "Mon", full: "Monday" },
+    { key: "tue", label: "Tue", full: "Tuesday" },
+    { key: "wed", label: "Wed", full: "Wednesday" },
+    { key: "thu", label: "Thu", full: "Thursday" },
+    { key: "fri", label: "Fri", full: "Friday" },
+    { key: "sat", label: "Sat", full: "Saturday" },
+    { key: "sun", label: "Sun", full: "Sunday" }
+  ];
+
+  var WEEK = {
+    mon: {
+      wake: "06:45", leave: "07:30", home: "~16:00",
+      blocks: [
+        { time: "08:30–10:00", course: "Réseaux Multimédia", room: "Amphi", type: "Cours" },
+        { time: "10:05–11:35", course: "Graphes et optimisation", room: "C4", type: "TD" },
+        { time: "12:15–13:45", course: "Théorie de l'Information", room: "Labo17", type: "Cours" },
+        { time: "13:50–15:20", course: "Théorie des langages et des Automates", room: "Labo2", type: "Cours" }
+      ]
+    },
+    tue: {
+      wake: "06:45", leave: "07:30", home: "~16:00",
+      note: "Long gap 10:00–12:15 on campus",
+      blocks: [
+        { time: "08:30–10:00", course: "Probabilité et statistique", room: "Amphi", type: "Cours" },
+        { time: "12:15–13:45", course: "Services des Réseaux", room: "Amphi", type: "Cours" },
+        { time: "13:50–15:20", course: "Probabilité et statistique", room: "Labo18", type: "TD" }
+      ]
+    },
+    wed: {
+      wake: "06:45", leave: "07:30", home: "~14:25",
+      blocks: [
+        { time: "08:30–10:00", course: "Ingénierie des Bases de Données", room: "C8", type: "Cours" },
+        { time: "10:05–11:35", course: "Conception des Systèmes d'Information", room: "C9", type: "Cours" },
+        { time: "12:15–13:45", course: "Théorie des langages et des Automates", room: "C1", type: "TD" }
+      ]
+    },
+    thu: { free: true },
+    fri: {
+      wake: "06:45", leave: "07:30", home: "~16:00",
+      blocks: [
+        { time: "08:30–10:00", course: "Conception des Systèmes d'Information", room: "C10", type: "TD" },
+        { time: "10:05–11:35", course: "Graphes et optimisation", room: "Labo13", type: "TD" },
+        { time: "12:15–13:45", course: "Programmation Java", room: "C3", type: "TD" },
+        { time: "13:50–15:20", course: "Anglais 3", room: "C11", type: "Cours" }
+      ]
+    },
+    sat: {
+      online: true,
+      blocks: [
+        { time: "10:05–11:35", course: "Ingénierie des Bases de Données", room: "En ligne", type: "TD" },
+        { time: "12:15–13:45", course: "Programmation Java", room: "En ligne", type: "TD" },
+        { time: "13:50–15:20", course: "Programmation Java", room: "En ligne", type: "TD" }
+      ]
+    },
+    sun: { free: true }
+  };
+
+  var SUBJECTS = [
+    "Réseaux Multimédia",
+    "Graphes et optimisation",
+    "Théorie de l'Information",
+    "Théorie des langages et des Automates",
+    "Probabilité et statistique",
+    "Services des Réseaux",
+    "Ingénierie des Bases de Données",
+    "Conception des Systèmes d'Information",
+    "Programmation Java",
+    "Anglais 3"
+  ];
+
+  var STAT_META = {
+    wisdom:    { label: "Wisdom",    color: "#E8B84B", icon: ISparkles, tag: "meditation" },
+    intellect: { label: "Intellect", color: "#6FA8DC", icon: IBook,     tag: "study sessions" },
+    craft:     { label: "Craft",     color: "#C4453D", icon: IHammer,   tag: "Godot dev" },
+    vitality:  { label: "Vitality",  color: "#5FBF7A", icon: IDumbbell, tag: "workouts" },
+    insight:   { label: "Insight",   color: "#B98AE0", icon: IBookmark, tag: "reading" },
+    bond:      { label: "Bond",      color: "#E88A6F", icon: IUsers,    tag: "time with people" }
+  };
+  var STAT_KEYS = ["wisdom", "intellect", "craft", "vitality", "insight", "bond"];
+
+  var QUESTS = [
+    { id: "meditate",  label: "Meditate",  stat: "wisdom",    icon: ISparkles, defaultDetail: "Meditation" },
+    { id: "study",     label: "Study",     stat: "intellect", icon: IBook,     inputType: "select" },
+    { id: "godot",     label: "Godot Dev", stat: "craft",     icon: IHammer,   defaultDetail: "Godot game dev" },
+    { id: "workout",   label: "Workout",   stat: "vitality",  icon: IDumbbell, hasDetail: true, prompt: "What kind of workout?" },
+    { id: "read",      label: "Read",      stat: "insight",   icon: IBookmark, hasDetail: true, prompt: "What are you reading?" },
+    { id: "socialize", label: "Socialize", stat: "bond",      icon: IUsers,    hasDetail: true, prompt: "Who / what with?" }
+  ];
+
+  var HOME_TASKS = [
+    { id: "dinner",   label: "Dinner" },
+    { id: "dishes",   label: "Dishes" },
+    { id: "mealprep", label: "Meal prep" },
+    { id: "shower",   label: "Shower" },
+    { id: "teeth",    label: "Brush teeth" },
+    { id: "skincare", label: "Skincare" },
+    { id: "packbag",  label: "Prep for tomorrow" },
+    { id: "gaming",   label: "Gaming" },
+    { id: "chill",    label: "Chill" }
+  ];
+
+  var WEEKLY_TASKS = [
+    { id: "tidyroom",  label: "Tidy room" },
+    { id: "laundry",   label: "Laundry" },
+    { id: "groceries", label: "Groceries" }
+  ];
+
+  var RANKS = [
+    { min: 0,  title: "Drifter" },
+    { min: 8,  title: "Initiate" },
+    { min: 18, title: "Operative" },
+    { min: 32, title: "Adept" },
+    { min: 50, title: "Ascendant" },
+    { min: 75, title: "Apex" }
+  ];
+
+  var DURATIONS = [15, 25, 45, 60, 90];
+  var DAILY_QUEST_CAP = 3;
+  var STORAGE_KEY = "ascent-state-v1";
+
+  /* ---------------- helpers ---------------- */
+
+  function levelInfo(xp) {
+    var level = 1, floorXP = 0, span = 100;
+    while (xp >= floorXP + span) { floorXP += span; level += 1; span = 100 + (level - 1) * 40; }
+    return { level: level, into: xp - floorXP, span: span };
+  }
+  function todayKey() {
+    return ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][new Date().getDay()];
+  }
+  function dateStr(d) {
+    d = d || new Date();
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var day = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + m + "-" + day;   // local date, not UTC
+  }
+  function sameDate(ts, ds) { return dateStr(new Date(ts)) === ds; }
+  function diffDays(a, b) {
+    return Math.round((new Date(a + "T00:00:00") - new Date(b + "T00:00:00")) / 86400000);
+  }
+  function daysUntil(ds) { return diffDays(ds, dateStr()); }
+  function emptyStats() {
+    var s = {}; STAT_KEYS.forEach(function (k) { s[k] = { xp: 0 }; }); return s;
+  }
+  function emptySubjects() {
+    var s = {}; SUBJECTS.forEach(function (n) { s[n] = { confidence: 50 }; }); return s;
+  }
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) { return null; }
+  }
+  function save(obj) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(obj)); } catch (err) {}
+  }
+
+  /* ---------------- styles ---------------- */
+
+  var S = {
+    page: { background: "#0A0A0A", color: "#EDEBE6", minHeight: "100vh", padding: "16px 14px 40px", maxWidth: 480, margin: "0 auto" },
+    flashWrap: { position: "fixed", top: 14, left: 0, right: 0, display: "flex", justifyContent: "center", zIndex: 50, pointerEvents: "none" },
+    flashCard: { background: "#141414", border: "1px solid", borderRadius: 4, padding: "8px 16px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, boxShadow: "0 4px 24px rgba(0,0,0,.5)" },
+    header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 },
+    title: { fontSize: 30, color: "#EDEBE6", lineHeight: 1 },
+    subtitle: { fontSize: 11, color: "#B3272C", marginTop: 4 },
+    streakWrap: { display: "flex", alignItems: "center", gap: 5, border: "1px solid #2A2A2A", borderRadius: 4, padding: "6px 10px" },
+    statRail: { display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, marginBottom: 18 },
+    statCard: { background: "#131313", border: "1px solid #232323", borderRadius: 4, padding: "9px 10px", minWidth: 108, flexShrink: 0 },
+    statTop: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+    barTrack: { height: 4, background: "#232323", borderRadius: 2, marginTop: 6, overflow: "hidden" },
+    barFill: { height: "100%", borderRadius: 2 },
+    dayRow: { display: "flex", gap: 6, marginBottom: 18 },
+    dayBtn: { flex: 1, border: "1px solid", borderRadius: 4, padding: "7px 0", fontSize: 11 },
+    section: { marginBottom: 22 },
+    sectionTitle: { fontSize: 15, color: "#EDEBE6", display: "flex", alignItems: "center", gap: 5 },
+    freeNote: { fontSize: 12, color: "#7A7A7A", background: "#131313", border: "1px dashed #2A2A2A", borderRadius: 4, padding: "12px 10px" },
+    timelineRow: { display: "flex", alignItems: "flex-start", gap: 10, padding: "7px 0", borderBottom: "1px solid #1A1A1A" },
+    timelineTime: { fontSize: 11, color: "#9A9A9A", width: 82, flexShrink: 0 },
+    timelineLabel: { fontSize: 12, color: "#EDEBE6" },
+    dayNote: { fontSize: 10, color: "#B3272C", marginTop: 6 },
+    slashWrap: { display: "flex", alignItems: "center", gap: 8, margin: "14px 0 4px" },
+    slashLine: { flex: 1, height: 1, background: "linear-gradient(90deg, transparent, #B3272C, transparent)" },
+    slashLabel: { fontSize: 10, color: "#B3272C", display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" },
+    questGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 },
+    questBtn: { width: "100%", display: "flex", alignItems: "center", gap: 8, background: "#131313", border: "1px solid", borderRadius: 4, padding: 10 },
+    questLabel: { fontSize: 11.5, color: "#EDEBE6", flex: 1, textAlign: "left" },
+    questForm: { marginTop: 6, background: "#101010", border: "1px solid", borderRadius: 4, padding: 10 },
+    input: { width: "100%", background: "#0A0A0A", border: "1px solid #2A2A2A", borderRadius: 3, padding: "8px 9px", color: "#EDEBE6", fontSize: 12 },
+    chipRow: { display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap", alignItems: "center" },
+    chip: { border: "1px solid", borderRadius: 3, padding: "5px 9px", fontSize: 11, background: "transparent" },
+    numInput: { width: 56, background: "#0A0A0A", border: "1px solid #2A2A2A", borderRadius: 3, padding: "5px 6px", color: "#EDEBE6", fontSize: 11 },
+    logBtn: { width: "100%", marginTop: 10, border: "none", borderRadius: 3, padding: "9px 0", fontSize: 11, color: "#0A0A0A", fontWeight: 700 },
+    homeTaskRow: { display: "flex", flexWrap: "wrap", gap: 8 },
+    taskChip: { border: "1px solid", borderRadius: 3, padding: "7px 12px", fontSize: 11, background: "transparent", display: "flex", alignItems: "center", gap: 5 },
+    logToggle: { fontSize: 11, color: "#7A7A7A", background: "transparent", border: "none", padding: 0 },
+    logList: { marginTop: 10, display: "flex", flexDirection: "column", gap: 7 },
+    logRow: { display: "flex", alignItems: "center", gap: 8 },
+    subjectRow: { background: "#131313", border: "1px solid #232323", borderRadius: 4, padding: "9px 10px" },
+    smallStep: { border: "1px solid #2A2A2A", background: "transparent", color: "#8A8A8A", borderRadius: 3, width: 22, height: 22, fontSize: 12, lineHeight: 1 },
+    addBtn: { border: "1px solid #2A2A2A", background: "transparent", borderRadius: 4, padding: 5, display: "flex" },
+    listRow: { display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: "1px solid #1A1A1A" },
+    iconBtn: { background: "transparent", border: "none", padding: 2, display: "flex", alignItems: "center" }
+  };
+
+  /* ---------------- app ---------------- */
+
+  function Ascent() {
+    var saved = useRef(null);
+    if (saved.current === null) saved.current = load() || {};
+    var P = saved.current;
+
+    var s1 = useState(P.stats || emptyStats()), stats = s1[0], setStats = s1[1];
+    var s2 = useState(P.log || []), log = s2[0], setLog = s2[1];
+    var s3 = useState(P.homeTasks || {}), homeTasks = s3[0], setHomeTasks = s3[1];
+    var s4 = useState(P.weeklyTasks || {}), weeklyTasks = s4[0], setWeeklyTasks = s4[1];
+    var s5 = useState(P.subjects || emptySubjects()), subjects = s5[0], setSubjects = s5[1];
+    var s6 = useState(P.events || []), events = s6[0], setEvents = s6[1];
+    var s7 = useState(P.homework || []), homework = s7[0], setHomework = s7[1];
+
+    // streak with soft decay, applied once per calendar day
+    var initStreak = (function () {
+      var st = P.streak || 0, la = P.lastActiveDate || null, today = dateStr();
+      if (P.lastDecayDate !== today && la) {
+        var missed = Math.max(0, diffDays(today, la) - 1);
+        if (missed > 0) st = Math.max(0, st - missed * 0.5);
+      }
+      return st;
+    })();
+    var s8 = useState(initStreak), streak = s8[0], setStreak = s8[1];
+    var s9 = useState(P.lastActiveDate || null), lastActiveDate = s9[0], setLastActiveDate = s9[1];
+    var s10 = useState(dateStr()), lastDecayDate = s10[0];
+
+    var a1 = useState(todayKey()), activeDay = a1[0], setActiveDay = a1[1];
+    var a2 = useState(null), openQuest = a2[0], setOpenQuest = a2[1];
+    var a3 = useState(""), detailText = a3[0], setDetailText = a3[1];
+    var a4 = useState(25), minutes = a4[0], setMinutes = a4[1];
+    var a5 = useState(null), flash = a5[0], setFlash = a5[1];
+    var a6 = useState(false), showLog = a6[0], setShowLog = a6[1];
+    var a7 = useState(false), addingEvent = a7[0], setAddingEvent = a7[1];
+    var a8 = useState(false), addingHw = a8[0], setAddingHw = a8[1];
+    var a9 = useState(""), evTitle = a9[0], setEvTitle = a9[1];
+    var a10 = useState(""), evDate = a10[0], setEvDate = a10[1];
+    var a11 = useState(""), hwTitle = a11[0], setHwTitle = a11[1];
+    var a12 = useState(SUBJECTS[0]), hwSubject = a12[0], setHwSubject = a12[1];
+    var a13 = useState(""), hwDue = a13[0], setHwDue = a13[1];
+
+    useEffect(function () {
+      save({
+        stats: stats, log: log, homeTasks: homeTasks, weeklyTasks: weeklyTasks,
+        subjects: subjects, events: events, homework: homework,
+        streak: streak, lastActiveDate: lastActiveDate, lastDecayDate: lastDecayDate
+      });
+    }, [stats, log, homeTasks, weeklyTasks, subjects, events, homework, streak, lastActiveDate, lastDecayDate]);
+
+    var totalLevel = STAT_KEYS.reduce(function (sum, k) { return sum + levelInfo(stats[k].xp).level; }, 0);
+    var rank = RANKS.slice().reverse().find(function (r) { return totalLevel >= r.min; }) || RANKS[0];
+
+    var today = dateStr();
+    var isThuToday = todayKey() === "thu";
+    var isSundayNow = todayKey() === "sun";
+    var questsUsedToday = log.filter(function (l) { return sameDate(l.ts, today); }).length;
+    var capReached = !isThuToday && questsUsedToday >= DAILY_QUEST_CAP;
+
+    function submitQuest(q) {
+      if (capReached) return;
+      var mins = Math.max(1, Math.min(600, Number(minutes) || 0));
+      var detail = q.inputType === "select"
+        ? (detailText || SUBJECTS[0])
+        : (q.hasDetail ? (detailText.trim() || q.label) : q.defaultDetail);
+      var prevLevel = levelInfo(stats[q.stat].xp).level;
+      var nextXP = stats[q.stat].xp + mins;
+      var newLevel = levelInfo(nextXP).level;
+
+      var ns = {}; STAT_KEYS.forEach(function (k) { ns[k] = stats[k]; });
+      ns[q.stat] = { xp: nextXP };
+      setStats(ns);
+
+      if (newLevel > prevLevel) {
+        setFlash({ stat: q.stat, level: newLevel });
+        setTimeout(function () { setFlash(null); }, 2200);
+      }
+
+      setLog([{ id: Date.now(), stat: q.stat, label: q.label, detail: detail, minutes: mins, ts: Date.now() }].concat(log).slice(0, 80));
+
+      if (lastActiveDate !== today) { setStreak(streak + 1); setLastActiveDate(today); }
+
+      setOpenQuest(null); setDetailText(""); setMinutes(25);
+    }
+
+    function toggleHomeTask(id) {
+      var day = Object.assign({}, homeTasks[today] || {});
+      day[id] = day[id] ? undefined : Date.now();
+      var next = Object.assign({}, homeTasks); next[today] = day;
+      setHomeTasks(next);
+    }
+    function toggleWeeklyTask(id) {
+      var wk = Object.assign({}, weeklyTasks[today] || {});
+      wk[id] = wk[id] ? undefined : Date.now();
+      var next = Object.assign({}, weeklyTasks); next[today] = wk;
+      setWeeklyTasks(next);
+    }
+    function adjustConfidence(name, delta) {
+      var cur = (subjects[name] && subjects[name].confidence) || 0;
+      var next = Object.assign({}, subjects);
+      next[name] = { confidence: Math.max(0, Math.min(100, cur + delta)) };
+      setSubjects(next);
+    }
+    function subjectMinutes(name) {
+      return log.filter(function (l) { return l.stat === "intellect" && l.detail === name; })
+                .reduce(function (s, l) { return s + l.minutes; }, 0);
+    }
+    function hwPending(name) {
+      return homework.filter(function (h) { return h.subject === name && !h.done; }).length;
+    }
+    function addEvent() {
+      if (!evTitle.trim() || !evDate) return;
+      setEvents(events.concat([{ id: Date.now(), title: evTitle.trim(), date: evDate }]));
+      setEvTitle(""); setEvDate(""); setAddingEvent(false);
+    }
+    function addHomework() {
+      if (!hwTitle.trim() || !hwDue) return;
+      setHomework(homework.concat([{ id: Date.now(), title: hwTitle.trim(), subject: hwSubject, due: hwDue, done: false }]));
+      setHwTitle(""); setHwDue(""); setAddingHw(false);
+    }
+    function toggleHomework(id) {
+      setHomework(homework.map(function (h) { return h.id === id ? Object.assign({}, h, { done: !h.done }) : h; }));
+    }
+
+    var day = WEEK[activeDay];
+    var isToday = activeDay === todayKey();
+
+    var todayLog = (function () {
+      if (!isToday) return [];
+      var items = [];
+      log.filter(function (l) { return sameDate(l.ts, today); }).forEach(function (l) {
+        items.push({ ts: l.ts, text: l.detail + " — +" + l.minutes + "m " + STAT_META[l.stat].label, color: STAT_META[l.stat].color });
+      });
+      var dt = homeTasks[today] || {};
+      HOME_TASKS.forEach(function (t) { if (dt[t.id]) items.push({ ts: dt[t.id], text: t.label, color: "#5FBF7A" }); });
+      if (isSundayNow) {
+        var wk = weeklyTasks[today] || {};
+        WEEKLY_TASKS.forEach(function (t) { if (wk[t.id]) items.push({ ts: wk[t.id], text: t.label + " (weekly)", color: "#5FBF7A" }); });
+      }
+      items.sort(function (a, b) { return a.ts - b.ts; });
+      return items;
+    })();
+
+    var sortedSubjects = SUBJECTS.slice().sort(function (a, b) {
+      return ((subjects[a] && subjects[a].confidence) || 0) - ((subjects[b] && subjects[b].confidence) || 0);
+    });
+    var sortedEvents = events.slice().sort(function (a, b) { return a.date.localeCompare(b.date); });
+    var sortedHw = homework.slice().sort(function (a, b) {
+      return a.done === b.done ? a.due.localeCompare(b.due) : (a.done ? 1 : -1);
+    });
+
+    var kids = [];
+
+    /* flash */
+    if (flash) {
+      kids.push(e("div", { key: "flash", className: "asc-flash", style: S.flashWrap },
+        e("div", { style: Object.assign({}, S.flashCard, { borderColor: STAT_META[flash.stat].color }) },
+          e("span", { className: "asc-mono", style: { fontSize: 11, color: "#9A9A9A" } }, "LEVEL UP"),
+          e("span", { className: "asc-display", style: { fontSize: 22, color: STAT_META[flash.stat].color } },
+            STAT_META[flash.stat].label + " → Lv." + flash.level)
+        )
+      ));
+    }
+
+    /* header */
+    kids.push(e("div", { key: "hdr", style: S.header },
+      e("div", null,
+        e("div", { className: "asc-display", style: S.title }, "ASCENT"),
+        e("div", { className: "asc-mono", style: S.subtitle }, rank.title + " · Rank " + totalLevel)
+      ),
+      e("div", { style: S.streakWrap },
+        e(IFlame, { size: 14, color: "#E8894B" }),
+        e("span", { className: "asc-mono", style: { fontSize: 12 } }, streak.toFixed(1))
+      )
+    ));
+
+    /* stat rail */
+    kids.push(e("div", { key: "rail", className: "asc-scroll", style: S.statRail },
+      STAT_KEYS.map(function (key) {
+        var meta = STAT_META[key], info = levelInfo(stats[key].xp);
+        var pct = Math.round((info.into / info.span) * 100);
+        return e("div", { key: key, style: S.statCard },
+          e("div", { style: S.statTop },
+            e(meta.icon, { size: 14, color: meta.color }),
+            e("span", { className: "asc-mono", style: { fontSize: 11, color: "#C9C9C9" } }, "Lv." + info.level)
+          ),
+          e("div", { className: "asc-mono", style: { fontSize: 12, marginTop: 4 } }, meta.label),
+          e("div", { style: S.barTrack },
+            e("div", { className: "asc-bar-fill", style: Object.assign({}, S.barFill, { width: pct + "%", background: meta.color }) })
+          ),
+          e("div", { className: "asc-mono", style: { fontSize: 9, color: "#6B6B6B", marginTop: 3 } }, meta.tag)
+        );
+      })
+    ));
+
+    /* day selector */
+    kids.push(e("div", { key: "days", style: S.dayRow },
+      DAYS.map(function (d) {
+        return e("button", {
+          key: d.key, className: "asc-mono",
+          onClick: function () { setActiveDay(d.key); },
+          style: Object.assign({}, S.dayBtn, {
+            borderColor: activeDay === d.key ? "#B3272C" : "#2A2A2A",
+            color: activeDay === d.key ? "#EDEBE6" : "#7A7A7A",
+            background: d.key === todayKey() ? "#171010" : "transparent"
+          })
+        }, d.label);
+      })
+    ));
+
+    /* timeline */
+    var tl = [];
+    tl.push(e("div", { key: "t", className: "asc-display", style: Object.assign({}, S.sectionTitle, { marginBottom: 10 }) },
+      DAYS.find(function (d) { return d.key === activeDay; }).full + (isToday ? " · TODAY" : "")));
+
+    if (day.free) {
+      tl.push(e("div", { key: "free", className: "asc-mono", style: S.freeNote },
+        "Open day — nothing fixed. Wake up whenever, go straight to the quest board."));
+    } else {
+      if (day.wake) tl.push(e("div", { key: "wake", style: S.timelineRow },
+        e(IClock, { size: 13, color: "#6B6B6B" }),
+        e("span", { className: "asc-mono", style: S.timelineTime }, day.wake),
+        e("span", { className: "asc-mono", style: S.timelineLabel }, "Wake up")));
+      if (day.leave) tl.push(e("div", { key: "leave", style: S.timelineRow },
+        e(IClock, { size: 13, color: "#6B6B6B" }),
+        e("span", { className: "asc-mono", style: S.timelineTime }, day.leave),
+        e("span", { className: "asc-mono", style: S.timelineLabel }, "Leave for uni")));
+      if (day.online) tl.push(e("div", { key: "onl", style: S.timelineRow },
+        e(IClock, { size: 13, color: "#6B6B6B" }),
+        e("span", { className: "asc-mono", style: S.timelineTime }, "—"),
+        e("span", { className: "asc-mono", style: S.timelineLabel }, "Online — at home")));
+
+      day.blocks.forEach(function (b, i) {
+        tl.push(e("div", { key: "b" + i, style: S.timelineRow },
+          e(IClock, { size: 13, color: "#B3272C" }),
+          e("span", { className: "asc-mono", style: S.timelineTime }, b.time),
+          e("div", { style: { display: "flex", flexDirection: "column" } },
+            e("span", { className: "asc-mono", style: S.timelineLabel }, b.course),
+            e("span", { className: "asc-mono", style: { fontSize: 10, color: "#6B6B6B", display: "flex", alignItems: "center", gap: 3, marginTop: 2 } },
+              e(IPin, { size: 9, color: "#6B6B6B" }), b.room + " · " + b.type)
+          )
+        ));
+      });
+
+      if (day.note) tl.push(e("div", { key: "note", className: "asc-mono", style: S.dayNote }, day.note));
+
+      tl.push(e("div", { key: "slash", style: S.slashWrap },
+        e("div", { style: S.slashLine }),
+        e("span", { className: "asc-mono", style: S.slashLabel },
+          e(IHome, { size: 11, color: "#B3272C" }),
+          day.online ? "QUEST BOARD OPENS" : "HOME " + day.home),
+        e("div", { style: S.slashLine })
+      ));
+    }
+
+    if (isToday && todayLog.length) {
+      tl.push(e("div", { key: "tlog", style: { marginTop: 4 } },
+        todayLog.map(function (it, i) {
+          return e("div", { key: i, style: S.timelineRow },
+            e("div", { style: { width: 6, height: 6, borderRadius: "50%", background: it.color, marginTop: 5, flexShrink: 0 } }),
+            e("span", { className: "asc-mono", style: S.timelineTime },
+              new Date(it.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })),
+            e("span", { className: "asc-mono", style: S.timelineLabel }, it.text)
+          );
+        })
+      ));
+    }
+    kids.push(e("div", { key: "timeline", style: S.section }, tl));
+
+    /* quest board */
+    var qb = [];
+    qb.push(e("div", { key: "qh", style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 } },
+      e("div", { className: "asc-display", style: S.sectionTitle }, "Quest Board"),
+      e("span", { className: "asc-mono", style: { fontSize: 10, color: capReached ? "#C4453D" : "#7A7A7A" } },
+        isThuToday ? "unlimited · thursday" : questsUsedToday + "/" + DAILY_QUEST_CAP + " today")
+    ));
+    if (capReached) {
+      qb.push(e("div", { key: "cap", className: "asc-mono", style: Object.assign({}, S.freeNote, { marginBottom: 10 }) },
+        "Daily quests used up. Home tasks, homework and events are still open — rest, or come back tomorrow."));
+    }
+    qb.push(e("div", { key: "qg", style: S.questGrid },
+      QUESTS.map(function (q) {
+        var meta = STAT_META[q.stat], isOpen = openQuest === q.id;
+        var inner = [
+          e("button", {
+            key: "btn", className: "asc-questbtn", disabled: capReached,
+            onClick: function () {
+              setOpenQuest(isOpen ? null : q.id);
+              setDetailText(q.inputType === "select" ? SUBJECTS[0] : "");
+              setMinutes(25);
+            },
+            style: Object.assign({}, S.questBtn, { borderColor: isOpen ? meta.color : "#2A2A2A" })
+          },
+            e(q.icon, { size: 16, color: meta.color }),
+            e("span", { className: "asc-mono", style: S.questLabel }, q.label),
+            isOpen ? e(IX, { size: 13, color: "#7A7A7A" }) : e(IChevron, { size: 13, color: "#4A4A4A" })
+          )
+        ];
+        if (isOpen) {
+          var form = [];
+          if (q.inputType === "select") {
+            form.push(e("select", {
+              key: "sel", className: "asc-select asc-mono", value: detailText,
+              onChange: function (ev) { setDetailText(ev.target.value); }
+            }, SUBJECTS.map(function (s) { return e("option", { key: s, value: s }, s); })));
+          }
+          if (q.hasDetail) {
+            form.push(e("input", {
+              key: "inp", className: "asc-mono", placeholder: q.prompt, value: detailText,
+              onChange: function (ev) { setDetailText(ev.target.value); }, style: S.input
+            }));
+          }
+          form.push(e("div", { key: "dl", className: "asc-mono", style: { fontSize: 10, color: "#7A7A7A", marginTop: 8 } }, "DURATION (minutes)"));
+          form.push(e("div", { key: "chips", style: S.chipRow },
+            DURATIONS.map(function (d) {
+              return e("button", {
+                key: d, className: "asc-mono", onClick: function () { setMinutes(d); },
+                style: Object.assign({}, S.chip, {
+                  borderColor: Number(minutes) === d ? meta.color : "#2A2A2A",
+                  color: Number(minutes) === d ? "#EDEBE6" : "#8A8A8A"
+                })
+              }, d);
+            }).concat([
+              e("input", {
+                key: "num", type: "number", className: "asc-mono", value: minutes, min: 1, max: 600,
+                onChange: function (ev) { setMinutes(ev.target.value); }, style: S.numInput
+              })
+            ])
+          ));
+          form.push(e("button", {
+            key: "go", className: "asc-mono",
+            onClick: function () { submitQuest(q); },
+            style: Object.assign({}, S.logBtn, { background: meta.color })
+          }, "LOG QUEST · +" + minutes + " XP"));
+
+          inner.push(e("div", { key: "form", style: Object.assign({}, S.questForm, { borderColor: meta.color }) }, form));
+        }
+        return e("div", { key: q.id, style: { gridColumn: isOpen ? "1 / -1" : "auto" } }, inner);
+      })
+    ));
+    kids.push(e("div", { key: "quests", style: S.section }, qb));
+
+    /* home tasks */
+    kids.push(e("div", { key: "home", style: S.section },
+      e("div", { className: "asc-display", style: Object.assign({}, S.sectionTitle, { marginBottom: 10 }) }, "Home Tasks"),
+      e("div", { style: S.homeTaskRow },
+        HOME_TASKS.map(function (t) {
+          var done = !!(homeTasks[today] || {})[t.id];
+          return e("button", {
+            key: t.id, className: "asc-mono", onClick: function () { toggleHomeTask(t.id); },
+            style: Object.assign({}, S.taskChip, { borderColor: done ? "#5FBF7A" : "#2A2A2A", color: done ? "#5FBF7A" : "#8A8A8A" })
+          }, done ? e(ICheck, { size: 11, color: "#5FBF7A" }) : null, t.label);
+        })
+      )
+    ));
+
+    /* weekly tasks (sunday tab) */
+    if (activeDay === "sun") {
+      kids.push(e("div", { key: "weekly", style: S.section },
+        e("div", { className: "asc-display", style: Object.assign({}, S.sectionTitle, { marginBottom: 10 }) }, "Weekly Tasks"),
+        !isSundayNow ? e("div", { className: "asc-mono", style: { fontSize: 10, color: "#6B6B6B", marginBottom: 8 } }, "Preview — unlocks on Sunday") : null,
+        e("div", { style: S.homeTaskRow },
+          WEEKLY_TASKS.map(function (t) {
+            var done = !!(weeklyTasks[today] || {})[t.id];
+            return e("button", {
+              key: t.id, className: "asc-mono", disabled: !isSundayNow,
+              onClick: function () { toggleWeeklyTask(t.id); },
+              style: Object.assign({}, S.taskChip, {
+                borderColor: done ? "#5FBF7A" : "#2A2A2A",
+                color: done ? "#5FBF7A" : "#8A8A8A",
+                opacity: isSundayNow ? 1 : 0.5
+              })
+            }, done ? e(ICheck, { size: 11, color: "#5FBF7A" }) : null, t.label);
+          })
+        )
+      ));
+    }
+
+    /* subjects */
+    kids.push(e("div", { key: "subj", style: S.section },
+      e("div", { className: "asc-display", style: Object.assign({}, S.sectionTitle, { marginBottom: 10 }) },
+        e(ITarget, { size: 14, color: "#EDEBE6" }), "Subjects"),
+      e("div", { style: { display: "flex", flexDirection: "column", gap: 8 } },
+        sortedSubjects.map(function (name) {
+          var conf = (subjects[name] && subjects[name].confidence) || 0;
+          var color = conf < 40 ? "#C4453D" : conf < 70 ? "#E8B84B" : "#5FBF7A";
+          var mins = subjectMinutes(name), pend = hwPending(name);
+          return e("div", { key: name, style: S.subjectRow },
+            e("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 } },
+              e("span", { className: "asc-mono", style: { fontSize: 11.5, flex: 1 } }, name),
+              e("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
+                e("button", { className: "asc-mono", style: S.smallStep, onClick: function () { adjustConfidence(name, -10); } }, "−"),
+                e("span", { className: "asc-mono", style: { fontSize: 10, color: color, width: 28, textAlign: "center" } }, conf + "%"),
+                e("button", { className: "asc-mono", style: S.smallStep, onClick: function () { adjustConfidence(name, 10); } }, "+")
+              )
+            ),
+            e("div", { style: S.barTrack },
+              e("div", { className: "asc-bar-fill", style: Object.assign({}, S.barFill, { width: conf + "%", background: color }) })),
+            e("div", { className: "asc-mono", style: { fontSize: 9, color: "#6B6B6B", marginTop: 3 } },
+              mins + "m studied" + (pend > 0 ? " · " + pend + " homework pending" : ""))
+          );
+        })
+      )
+    ));
+
+    /* events */
+    var evKids = [
+      e("div", { key: "h", style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 } },
+        e("div", { className: "asc-display", style: S.sectionTitle }, e(ICalendar, { size: 14, color: "#EDEBE6" }), "Events"),
+        e("button", { style: S.addBtn, onClick: function () { setAddingEvent(!addingEvent); } },
+          addingEvent ? e(IX, { size: 13, color: "#EDEBE6" }) : e(IPlus, { size: 13, color: "#EDEBE6" }))
+      )
+    ];
+    if (addingEvent) {
+      evKids.push(e("div", { key: "f", style: Object.assign({}, S.questForm, { borderColor: "#B3272C", marginBottom: 8, marginTop: 0 }) },
+        e("input", { className: "asc-mono", placeholder: "Event title", value: evTitle, style: S.input, onChange: function (ev) { setEvTitle(ev.target.value); } }),
+        e("input", { type: "date", className: "asc-datein asc-mono", value: evDate, style: { marginTop: 6 }, onChange: function (ev) { setEvDate(ev.target.value); } }),
+        e("button", { className: "asc-mono", style: Object.assign({}, S.logBtn, { background: "#B3272C" }), onClick: addEvent }, "ADD EVENT")
+      ));
+    }
+    if (!sortedEvents.length && !addingEvent) {
+      evKids.push(e("div", { key: "empty", className: "asc-mono", style: { fontSize: 11, color: "#5A5A5A" } }, "Nothing on the horizon."));
+    }
+    sortedEvents.forEach(function (ev) {
+      var du = daysUntil(ev.date);
+      evKids.push(e("div", { key: ev.id, style: S.listRow },
+        e("span", { className: "asc-mono", style: { fontSize: 11, flex: 1 } }, ev.title),
+        e("span", { className: "asc-mono", style: { fontSize: 10, color: du < 0 ? "#C4453D" : du <= 2 ? "#E8B84B" : "#7A7A7A" } },
+          du < 0 ? "past" : du === 0 ? "today" : "in " + du + "d"),
+        e("button", { style: S.iconBtn, onClick: function () { setEvents(events.filter(function (x) { return x.id !== ev.id; })); } },
+          e(ITrash, { size: 12, color: "#5A5A5A" }))
+      ));
+    });
+    kids.push(e("div", { key: "events", style: S.section }, evKids));
+
+    /* homework */
+    var hwKids = [
+      e("div", { key: "h", style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 } },
+        e("div", { className: "asc-display", style: S.sectionTitle }, e(IClipboard, { size: 14, color: "#EDEBE6" }), "Homework"),
+        e("button", { style: S.addBtn, onClick: function () { setAddingHw(!addingHw); } },
+          addingHw ? e(IX, { size: 13, color: "#EDEBE6" }) : e(IPlus, { size: 13, color: "#EDEBE6" }))
+      )
+    ];
+    if (addingHw) {
+      hwKids.push(e("div", { key: "f", style: Object.assign({}, S.questForm, { borderColor: "#6FA8DC", marginBottom: 8, marginTop: 0 }) },
+        e("input", { className: "asc-mono", placeholder: "Assignment title", value: hwTitle, style: S.input, onChange: function (ev) { setHwTitle(ev.target.value); } }),
+        e("select", { className: "asc-select asc-mono", value: hwSubject, style: { marginTop: 6 }, onChange: function (ev) { setHwSubject(ev.target.value); } },
+          SUBJECTS.map(function (s) { return e("option", { key: s, value: s }, s); })),
+        e("input", { type: "date", className: "asc-datein asc-mono", value: hwDue, style: { marginTop: 6 }, onChange: function (ev) { setHwDue(ev.target.value); } }),
+        e("button", { className: "asc-mono", style: Object.assign({}, S.logBtn, { background: "#6FA8DC" }), onClick: addHomework }, "ADD HOMEWORK")
+      ));
+    }
+    if (!sortedHw.length && !addingHw) {
+      hwKids.push(e("div", { key: "empty", className: "asc-mono", style: { fontSize: 11, color: "#5A5A5A" } }, "Nothing pending."));
+    }
+    sortedHw.forEach(function (h) {
+      var du = daysUntil(h.due);
+      hwKids.push(e("div", { key: h.id, style: S.listRow },
+        e("button", { style: S.iconBtn, onClick: function () { toggleHomework(h.id); } },
+          e(ICheck, { size: 13, color: h.done ? "#5FBF7A" : "#3A3A3A" })),
+        e("div", { style: { flex: 1, display: "flex", flexDirection: "column", opacity: h.done ? 0.4 : 1 } },
+          e("span", { className: "asc-mono", style: { fontSize: 11, textDecoration: h.done ? "line-through" : "none" } }, h.title),
+          e("span", { className: "asc-mono", style: { fontSize: 9, color: "#6B6B6B" } }, h.subject)),
+        !h.done ? e("span", { className: "asc-mono", style: { fontSize: 10, color: du < 0 ? "#C4453D" : du <= 2 ? "#E8B84B" : "#7A7A7A" } },
+          du < 0 ? "overdue" : du === 0 ? "today" : du + "d") : null,
+        e("button", { style: S.iconBtn, onClick: function () { setHomework(homework.filter(function (x) { return x.id !== h.id; })); } },
+          e(ITrash, { size: 12, color: "#5A5A5A" }))
+      ));
+    });
+    kids.push(e("div", { key: "homework", style: S.section }, hwKids));
+
+    /* full log */
+    var lg = [e("button", { key: "tog", className: "asc-mono", style: S.logToggle, onClick: function () { setShowLog(!showLog); } },
+      (showLog ? "Hide" : "Show") + " full quest log (" + log.length + ")")];
+    if (showLog) {
+      lg.push(e("div", { key: "list", style: S.logList },
+        log.length === 0
+          ? e("div", { className: "asc-mono", style: { fontSize: 11, color: "#5A5A5A" } }, "No quests logged yet.")
+          : log.map(function (l) {
+              return e("div", { key: l.id, style: S.logRow },
+                e("div", { style: { width: 6, height: 6, borderRadius: "50%", background: STAT_META[l.stat].color, flexShrink: 0 } }),
+                e("span", { className: "asc-mono", style: { fontSize: 11, color: "#C9C9C9", flex: 1 } }, l.detail),
+                e("span", { className: "asc-mono", style: { fontSize: 10, color: "#6B6B6B" } }, l.minutes + "m")
+              );
+            })
+      ));
+    }
+    kids.push(e("div", { key: "log", style: S.section }, lg));
+
+    return e("div", { style: S.page }, kids);
+  }
+
+  ReactDOM.createRoot(document.getElementById("root")).render(e(Ascent));
+})();
+</script>
+</body>
+</html>
