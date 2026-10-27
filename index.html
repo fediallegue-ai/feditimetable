@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0A0A0A">
 <title>ASCENT</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -87,6 +89,9 @@
   var ICalendar = mk([{ t: "rect", a: { x: 3, y: 4, width: 18, height: 18, rx: 2 } }, "M16 2v4", "M8 2v4", "M3 10h18"]);
   var IClipboard = mk(["M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2", { t: "rect", a: { x: 8, y: 2, width: 8, height: 4, rx: 1 } }]);
   var ITarget = mk([{ t: "circle", a: { cx: 12, cy: 12, r: 10 } }, { t: "circle", a: { cx: 12, cy: 12, r: 6 } }, { t: "circle", a: { cx: 12, cy: 12, r: 2 } }]);
+  var IBell = mk(["M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9z", "M10.3 21a1.94 1.94 0 0 0 3.4 0"]);
+  var IHeart = mk(["M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7z"]);
+  var IDots = mk([{ t: "circle", a: { cx: 5, cy: 12, r: 1.6 } }, { t: "circle", a: { cx: 12, cy: 12, r: 1.6 } }, { t: "circle", a: { cx: 19, cy: 12, r: 1.6 } }]);
 
   /* ---------------- static data ---------------- */
 
@@ -100,31 +105,50 @@
     { key: "sun", label: "Sun", full: "Sunday" }
   ];
 
-  var WEEK = {
-    mon: {
-      wake: "06:45", leave: "07:30", home: "~16:00",
-      blocks: [
-        { time: "08:30–10:00", course: "Réseaux Multimédia", room: "Amphi", type: "Cours" },
-        { time: "10:05–11:35", course: "Graphes et optimisation", room: "C4", type: "TD" },
-        { time: "12:15–13:45", course: "Théorie de l'Information", room: "Labo17", type: "Cours" },
-        { time: "13:50–15:20", course: "Théorie des langages et des Automates", room: "Labo2", type: "Cours" }
-      ]
-    },
-    tue: {
-      wake: "06:45", leave: "07:30", home: "~16:00",
-      note: "Long gap 10:00–12:15 on campus",
-      blocks: [
-        { time: "08:30–10:00", course: "Probabilité et statistique", room: "Amphi", type: "Cours" },
-        { time: "12:15–13:45", course: "Services des Réseaux", room: "Amphi", type: "Cours" },
-        { time: "13:50–15:20", course: "Probabilité et statistique", room: "Labo18", type: "TD" }
-      ]
-    },
+  // Mon & Tue alternate on a two-week cycle (A/B); Wed–Sun are constant.
+  var MON_A = {
+    wake: "06:45", leave: "07:30", home: "~17:35",
+    blocks: [
+      { time: "08:30–10:00", course: "Réseaux Multimédia", room: "Amphi", type: "Cours" },
+      { time: "10:05–11:35", course: "Réseaux Multimédia", room: "C12", type: "Cours" },
+      { time: "12:15–13:45", course: "Théorie de l'Information", room: "Labo17", type: "Cours" },
+      { time: "13:50–15:20", course: "Services des Réseaux", room: "Labo14", type: "Cours" },
+      { time: "15:25–16:55", course: "Théorie des langages et des Automates", room: "C1", type: "Cours" }
+    ]
+  };
+  var MON_B = {
+    wake: "06:45", leave: "07:30", home: "~14:25",
+    blocks: [
+      { time: "08:30–10:00", course: "Réseaux Multimédia", room: "Amphi", type: "Cours" },
+      { time: "10:05–11:35", course: "Graphes et optimisation", room: "C4", type: "TD" },
+      { time: "12:15–13:45", course: "Théorie de l'Information", room: "Labo17", type: "Cours" }
+    ]
+  };
+  var TUE_A = {
+    wake: "06:45", leave: "07:30", home: "~16:00",
+    blocks: [
+      { time: "08:30–10:00", course: "Théorie de l'Information", room: "Labo17", type: "Cours" },
+      { time: "10:05–11:35", course: "Probabilité et statistique", room: "Amphi", type: "Cours" },
+      { time: "12:15–13:45", course: "Probabilité et statistique", room: "Amphi", type: "Cours" },
+      { time: "13:50–15:20", course: "Services des Réseaux", room: "Amphi", type: "Cours" }
+    ]
+  };
+  var TUE_B = {
+    wake: "08:30", leave: "09:25", home: "~16:00",
+    blocks: [
+      { time: "10:05–11:35", course: "Probabilité et statistique", room: "Amphi", type: "Cours" },
+      { time: "12:15–13:45", course: "Probabilité et statistique", room: "Amphi", type: "Cours" },
+      { time: "13:50–15:20", course: "Services des Réseaux", room: "Amphi", type: "Cours" }
+    ]
+  };
+  var WEEK_COMMON = {
     wed: {
-      wake: "06:45", leave: "07:30", home: "~14:25",
+      wake: "06:45", leave: "07:30", home: "~16:00",
       blocks: [
         { time: "08:30–10:00", course: "Ingénierie des Bases de Données", room: "C8", type: "Cours" },
         { time: "10:05–11:35", course: "Conception des Systèmes d'Information", room: "C9", type: "Cours" },
-        { time: "12:15–13:45", course: "Théorie des langages et des Automates", room: "C1", type: "TD" }
+        { time: "12:15–13:45", course: "Théorie des langages et des Automates", room: "C1", type: "TD" },
+        { time: "13:50–15:20", course: "Gestion d'entreprise", room: "C12", type: "Cours" }
       ]
     },
     thu: { free: true },
@@ -148,6 +172,46 @@
     sun: { free: true }
   };
 
+  // Mondays (ISO) of weeks with no classes at all (holidays/breaks). Add more as they come up.
+  var HOLIDAY_WEEKS = ["2026-11-09"];
+  var WEEK_A_REF = new Date(2026, 9, 19); // a confirmed "A" week Monday
+
+  function mondayOf(d) {
+    var dt = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    var day = dt.getDay();
+    var diffToMon = day === 0 ? -6 : 1 - day;
+    dt.setDate(dt.getDate() + diffToMon);
+    return dt;
+  }
+  function isoDate(d) {
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var day = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + m + "-" + day;
+  }
+  function getWeekInfo(d) {
+    var monday = mondayOf(d || new Date());
+    var mondayStr = isoDate(monday);
+    if (HOLIDAY_WEEKS.indexOf(mondayStr) !== -1) return { type: "A", holiday: true };
+    var diff = Math.round((monday - WEEK_A_REF) / (7 * 86400000));
+    var skips = HOLIDAY_WEEKS.filter(function (hw) {
+      var hd = new Date(hw + "T00:00:00");
+      return hd > WEEK_A_REF && hd <= monday;
+    }).length;
+    var parity = ((diff - skips) % 2 + 2) % 2;
+    return { type: parity === 0 ? "A" : "B", holiday: false };
+  }
+  function buildWeek(info) {
+    var w = Object.assign({}, WEEK_COMMON);
+    if (info.holiday) {
+      w.mon = { free: true };
+      w.tue = { free: true };
+    } else {
+      w.mon = info.type === "A" ? MON_A : MON_B;
+      w.tue = info.type === "A" ? TUE_A : TUE_B;
+    }
+    return w;
+  }
+
   var SUBJECTS = [
     "Réseaux Multimédia",
     "Graphes et optimisation",
@@ -158,7 +222,8 @@
     "Ingénierie des Bases de Données",
     "Conception des Systèmes d'Information",
     "Programmation Java",
-    "Anglais 3"
+    "Anglais 3",
+    "Gestion d'entreprise"
   ];
 
   var STAT_META = {
@@ -209,9 +274,24 @@
 
   var DURATIONS = [15, 25, 45, 60, 90];
   var DAILY_QUEST_CAP = 3;
+  var SEED_CLUBS = [
+    { id: 1, name: "Life of Gamers", bureau: false },
+    { id: 2, name: "Green ISAMM", bureau: true },
+    { id: 3, name: "Orenda", bureau: false }
+  ];
   var STORAGE_KEY = "ascent-state-v1";
 
   /* ---------------- helpers ---------------- */
+
+  var RECALL_GOAL = 8;
+  var RECALL_BONUS = 5;
+  var RECALL_GAP = [0, 1, 3, 7, 14, 30]; // days until next review, by box
+
+  function addDaysStr(ds, n) {
+    var d = new Date(ds + "T00:00:00");
+    d.setDate(d.getDate() + n);
+    return dateStr(d);
+  }
 
   function levelInfo(xp) {
     var level = 1, floorXP = 0, span = 100;
@@ -236,7 +316,7 @@
     var s = {}; STAT_KEYS.forEach(function (k) { s[k] = { xp: 0 }; }); return s;
   }
   function emptySubjects() {
-    var s = {}; SUBJECTS.forEach(function (n) { s[n] = { confidence: 50 }; }); return s;
+    var s = {}; SUBJECTS.forEach(function (n) { s[n] = { confidence: 50, grades: [], chapters: [] }; }); return s;
   }
   function load() {
     try {
@@ -251,7 +331,9 @@
   /* ---------------- styles ---------------- */
 
   var S = {
-    page: { background: "#0A0A0A", color: "#EDEBE6", minHeight: "100vh", padding: "16px 14px 40px", maxWidth: 480, margin: "0 auto" },
+    page: { background: "#0A0A0A", color: "#EDEBE6", minHeight: "100vh", padding: "16px 14px 86px", maxWidth: 480, margin: "0 auto" },
+    navBar: { position: "fixed", bottom: 0, left: 0, right: 0, display: "flex", justifyContent: "space-around", background: "rgba(10,10,10,0.95)", borderTop: "1px solid #232323", backdropFilter: "blur(6px)", paddingTop: 8, paddingBottom: "calc(8px + env(safe-area-inset-bottom, 0px))", zIndex: 20 },
+    navBtn: { display: "flex", flexDirection: "column", alignItems: "center", background: "transparent", border: "none", flex: 1, padding: "2px 0" },
     flashWrap: { position: "fixed", top: 14, left: 0, right: 0, display: "flex", justifyContent: "center", zIndex: 50, pointerEvents: "none" },
     flashCard: { background: "#141414", border: "1px solid", borderRadius: 4, padding: "8px 16px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, boxShadow: "0 4px 24px rgba(0,0,0,.5)" },
     header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 },
@@ -293,7 +375,17 @@
     smallStep: { border: "1px solid #2A2A2A", background: "transparent", color: "#8A8A8A", borderRadius: 3, width: 22, height: 22, fontSize: 12, lineHeight: 1 },
     addBtn: { border: "1px solid #2A2A2A", background: "transparent", borderRadius: 4, padding: 5, display: "flex" },
     listRow: { display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: "1px solid #1A1A1A" },
-    iconBtn: { background: "transparent", border: "none", padding: 2, display: "flex", alignItems: "center" }
+    iconBtn: { background: "transparent", border: "none", padding: 2, display: "flex", alignItems: "center" },
+    timerBanner: { display: "flex", justifyContent: "space-between", alignItems: "center", background: "#131313", border: "1px solid", borderRadius: 4, padding: "10px 14px", marginBottom: 10 },
+    cancelBtn: { border: "1px solid #2A2A2A", background: "transparent", color: "#7A7A7A", borderRadius: 3, padding: "7px 12px", fontSize: 10 },
+    recapBarRow: { display: "flex", alignItems: "center", gap: 8, marginBottom: 7 },
+    recapBarLabel: { fontSize: 10, color: "#9A9A9A", width: 62, flexShrink: 0 },
+    recapBarTrack: { flex: 1, height: 10, background: "#1A1A1A", borderRadius: 2, overflow: "hidden" },
+    recapBarFill: { height: "100%", borderRadius: 2 },
+    recapBarValue: { fontSize: 10, color: "#7A7A7A", width: 44, textAlign: "right", flexShrink: 0 },
+    gradeChip: { border: "1px solid #2A2A2A", borderRadius: 3, padding: "3px 7px", fontSize: 9, color: "#9A9A9A", display: "flex", alignItems: "center", gap: 4 },
+    questForm2: { display: "flex", justifyContent: "space-between", alignItems: "center", background: "#131313", border: "1px solid #232323", borderRadius: 4, padding: "10px 12px" },
+    morePanel: { marginTop: 10, background: "#101010", border: "1px solid #232323", borderRadius: 4, padding: 12 }
   };
 
   /* ---------------- app ---------------- */
@@ -310,6 +402,43 @@
     var s5 = useState(P.subjects || emptySubjects()), subjects = s5[0], setSubjects = s5[1];
     var s6 = useState(P.events || []), events = s6[0], setEvents = s6[1];
     var s7 = useState(P.homework || []), homework = s7[0], setHomework = s7[1];
+    var s7b = useState(P.interests || []), interests = s7b[0], setInterests = s7b[1];
+    var s7c = useState(P.nudges || { lastFired: {}, interestPointer: 0 }), nudges = s7c[0], setNudges = s7c[1];
+    var notifInit = (typeof Notification !== "undefined") ? Notification.permission : "unsupported";
+    var s7d = useState(notifInit), notifPermission = s7d[0], setNotifPermission = s7d[1];
+    var s7e = useState(""), interestTitle = s7e[0], setInterestTitle = s7e[1];
+    var s7f = useState(false), addingInterest = s7f[0], setAddingInterest = s7f[1];
+    var s7g = useState(null), gradeFor = s7g[0], setGradeFor = s7g[1];
+    var s7h = useState(""), gradeValue = s7h[0], setGradeValue = s7h[1];
+    var s7i = useState(""), gradeLabel = s7i[0], setGradeLabel = s7i[1];
+    var s7j = useState(P.activeTimer || null), activeTimer = s7j[0], setActiveTimer = s7j[1];
+    var s7k = useState(0), timerTick = s7k[0], setTimerTick = s7k[1];
+    var s7l = useState(P.exams || []), exams = s7l[0], setExams = s7l[1];
+
+    var k1 = useState(P.clubs || SEED_CLUBS), clubs = k1[0], setClubs = k1[1];
+    var k2 = useState(P.clubItems || []), clubItems = k2[0], setClubItems = k2[1];
+    var k3 = useState((P.clubs || SEED_CLUBS)[0].id), activeClub = k3[0], setActiveClub = k3[1];
+    var k4 = useState(false), addingClubItem = k4[0], setAddingClubItem = k4[1];
+    var k5 = useState(""), ciTitle = k5[0], setCiTitle = k5[1];
+    var k6 = useState(""), ciDate = k6[0], setCiDate = k6[1];
+    var k7 = useState("event"), ciKind = k7[0], setCiKind = k7[1];
+    var k8 = useState(""), ciNote = k8[0], setCiNote = k8[1];
+    var k9 = useState(false), addingClub = k9[0], setAddingClub = k9[1];
+    var k10 = useState(""), newClubName = k10[0], setNewClubName = k10[1];
+    var k11 = useState(false), newClubBureau = k11[0], setNewClubBureau = k11[1];
+    var importRef = useRef(null);
+    var d1 = useState(P.decks || []), decks = d1[0], setDecks = d1[1];
+    var d2 = useState(P.recallStats || { date: null, done: 0 }), recallStats = d2[0], setRecallStats = d2[1];
+    var d3 = useState(null), session = d3[0], setSession = d3[1];
+    var d4 = useState(false), showBack = d4[0], setShowBack = d4[1];
+    var deckImportRef = useRef(null);
+
+    var c1 = useState(null), chaptersOpenFor = c1[0], setChaptersOpenFor = c1[1];
+    var c2 = useState(""), chapterTitle = c2[0], setChapterTitle = c2[1];
+    var c3 = useState(false), addingExam = c3[0], setAddingExam = c3[1];
+    var c4 = useState(SUBJECTS[0]), examSubject = c4[0], setExamSubject = c4[1];
+    var c5 = useState(""), examDate = c5[0], setExamDate = c5[1];
+    var c6 = useState([]), examChapterIds = c6[0], setExamChapterIds = c6[1];
 
     // streak with soft decay, applied once per calendar day
     var initStreak = (function () {
@@ -324,12 +453,12 @@
     var s9 = useState(P.lastActiveDate || null), lastActiveDate = s9[0], setLastActiveDate = s9[1];
     var s10 = useState(dateStr()), lastDecayDate = s10[0];
 
+    var navState = useState("today"), navTab = navState[0], setNavTab = navState[1];
     var a1 = useState(todayKey()), activeDay = a1[0], setActiveDay = a1[1];
     var a2 = useState(null), openQuest = a2[0], setOpenQuest = a2[1];
     var a3 = useState(""), detailText = a3[0], setDetailText = a3[1];
     var a4 = useState(25), minutes = a4[0], setMinutes = a4[1];
     var a5 = useState(null), flash = a5[0], setFlash = a5[1];
-    var a6 = useState(false), showLog = a6[0], setShowLog = a6[1];
     var a7 = useState(false), addingEvent = a7[0], setAddingEvent = a7[1];
     var a8 = useState(false), addingHw = a8[0], setAddingHw = a8[1];
     var a9 = useState(""), evTitle = a9[0], setEvTitle = a9[1];
@@ -342,9 +471,173 @@
       save({
         stats: stats, log: log, homeTasks: homeTasks, weeklyTasks: weeklyTasks,
         subjects: subjects, events: events, homework: homework,
-        streak: streak, lastActiveDate: lastActiveDate, lastDecayDate: lastDecayDate
+        streak: streak, lastActiveDate: lastActiveDate, lastDecayDate: lastDecayDate,
+        interests: interests, nudges: nudges, activeTimer: activeTimer, exams: exams, decks: decks, recallStats: recallStats,
+        clubs: clubs, clubItems: clubItems
       });
-    }, [stats, log, homeTasks, weeklyTasks, subjects, events, homework, streak, lastActiveDate, lastDecayDate]);
+    }, [stats, log, homeTasks, weeklyTasks, subjects, events, homework, streak, lastActiveDate, lastDecayDate, interests, nudges, activeTimer, exams, decks, recallStats, clubs, clubItems]);
+
+    // register the service worker once, so installing to the home screen + notifications both work
+    useEffect(function () {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js").catch(function () {});
+      }
+    }, []);
+
+    function fireNudge(title, body) {
+      if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(function (reg) {
+          reg.showNotification(title, { body: body, tag: title, icon: "icon.svg" });
+        });
+      } else {
+        try { new Notification(title, { body: body }); } catch (err) {}
+      }
+    }
+
+    function enableNotifications() {
+      if (typeof Notification === "undefined") { alert("Notifications aren't supported in this browser."); return; }
+      Notification.requestPermission().then(function (perm) { setNotifPermission(perm); });
+    }
+
+    // the nudge engine: checks every 60s while the app is open/recently backgrounded
+    var engineRef = useRef({ stats: stats, log: log, homework: homework, subjects: subjects, interests: interests, nudges: nudges, lastActiveDate: lastActiveDate, exams: exams, clubs: clubs, clubItems: clubItems });
+    engineRef.current = { stats: stats, log: log, homework: homework, subjects: subjects, interests: interests, nudges: nudges, lastActiveDate: lastActiveDate, exams: exams, clubs: clubs, clubItems: clubItems };
+
+    useEffect(function () {
+      function parseMin(str) {
+        var clean = str.replace("~", "");
+        var parts = clean.split(":");
+        return Number(parts[0]) * 60 + Number(parts[1]);
+      }
+      function isFreeNow(wk, mins, weekInfo) {
+        var w = buildWeek(weekInfo);
+        var d = w[wk];
+        if (d.free) return true;
+        if (d.online) {
+          var lastBlock = d.blocks[d.blocks.length - 1];
+          return mins >= parseMin(lastBlock.time.split("–")[1]);
+        }
+        if (!d.home) return false;
+        return mins >= parseMin(d.home);
+      }
+
+      var id = setInterval(function () {
+        var ctx = engineRef.current;
+        if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+        var now = new Date();
+        var todayStr = dateStr(now);
+        var wk = todayKey();
+        var mins = now.getHours() * 60 + now.getMinutes();
+        var weekInfo = getWeekInfo(now);
+        var nf = Object.assign({}, ctx.nudges.lastFired);
+        var changed = false;
+        var fired = false;
+        var newPointer = ctx.nudges.interestPointer || 0;
+
+        function dailyOnce(key, startMin, endMin, cond, title, body) {
+          if (fired || mins < startMin || mins > endMin || nf[key] === todayStr) return;
+          nf[key] = todayStr; changed = true;
+          if (cond === false) return;
+          fireNudge(title, body); fired = true;
+        }
+
+        // Tuesday B late start has no gap anymore, but a quick heads-up at the day's natural break is still nice
+        if (wk === "thu" || wk === "sun") {
+          dailyOnce("freeday", 600, 610, true, "Open day",
+            wk === "thu" ? "Thursday's wide open and quests are unlimited today." : "Sunday's free — good day to catch up or just rest.");
+        }
+
+        if (!fired && mins >= 540 && mins <= 550 && nf.hw !== todayStr) {
+          var due = ctx.homework.filter(function (h) { return !h.done && daysUntil(h.due) <= 1 && daysUntil(h.due) >= 0; });
+          nf.hw = todayStr; changed = true;
+          if (due.length) { fireNudge("Homework check", due.length + " due soon: " + due.map(function (h) { return h.title; }).slice(0, 2).join(", ")); fired = true; }
+        }
+
+        if (!fired && mins >= 1020 && mins <= 1030 && nf.subject !== todayStr) {
+          var soonExam = (ctx.exams || []).filter(function (ex) { return daysUntil(ex.date) >= 0 && daysUntil(ex.date) <= 3; })
+            .sort(function (a, b) { return a.date.localeCompare(b.date); })[0];
+          nf.subject = todayStr; changed = true;
+          if (soonExam) {
+            var exChapters = (ctx.subjects[soonExam.subject] && ctx.subjects[soonExam.subject].chapters) || [];
+            var exTitles = soonExam.chapterIds.map(function (id) {
+              var c = exChapters.filter(function (ch) { return ch.id === id; })[0];
+              return c ? c.title : null;
+            }).filter(Boolean);
+            var exDu = daysUntil(soonExam.date);
+            var when = exDu === 0 ? "today" : exDu === 1 ? "tomorrow" : "in " + exDu + "d";
+            fireNudge("Exam incoming", soonExam.subject + " exam " + when + (exTitles.length ? " — " + exTitles.join(", ") : ""));
+            fired = true;
+          } else {
+            var weakestName = SUBJECTS.slice().sort(function (a, b) {
+              return ((ctx.subjects[a] && ctx.subjects[a].confidence) || 0) - ((ctx.subjects[b] && ctx.subjects[b].confidence) || 0);
+            })[0];
+            var conf = (ctx.subjects[weakestName] && ctx.subjects[weakestName].confidence) || 0;
+            fireNudge("Focus check", "Your weakest subject is " + weakestName + " (" + conf + "%) — maybe a quick Study session?");
+            fired = true;
+          }
+        }
+
+        if (!fired && mins >= 555 && mins <= 570 && nf.club !== todayStr) {
+          nf.club = todayStr; changed = true;
+          var clubSoon = (ctx.clubItems || []).filter(function (ci) {
+            return ci.kind !== "idea" && !ci.done && ci.date && daysUntil(ci.date) >= 0 && daysUntil(ci.date) <= 1;
+          });
+          if (clubSoon.length) {
+            var cs = clubSoon[0];
+            var cl = (ctx.clubs || []).filter(function (c) { return c.id === cs.clubId; })[0];
+            fireNudge("Club " + (cs.kind === "deadline" ? "deadline" : "event"),
+              (cl ? cl.name + ": " : "") + cs.title + (daysUntil(cs.date) === 0 ? " — today" : " — tomorrow") + (clubSoon.length > 1 ? " (+" + (clubSoon.length - 1) + " more)" : ""));
+            fired = true;
+          }
+        }
+
+        if (!fired && isFreeNow(wk, mins, weekInfo)) {
+          var lastLogTs = ctx.log.length ? ctx.log[0].ts : null;
+          var idleFor = lastLogTs ? now.getTime() - lastLogTs : Infinity;
+          if (idleFor > 45 * 60 * 1000) {
+            var lastIdle = nf.idle;
+            if (!lastIdle || now.getTime() - lastIdle > 60 * 60 * 1000) {
+              fireNudge("Still there?", "You've got free time right now — want to log a quest?");
+              nf.idle = now.getTime(); changed = true; fired = true;
+            }
+          }
+        }
+
+        if (!fired) {
+          var active = ctx.interests.filter(function (i) { return !i.done; });
+          if (active.length) {
+            var lastInt = nf.interest;
+            if (!lastInt || now.getTime() - lastInt > 3 * 60 * 60 * 1000) {
+              var ptr = newPointer % active.length;
+              fireNudge("Side quest", "You could spend some time on " + active[ptr].title + ".");
+              nf.interest = now.getTime(); newPointer = ptr + 1; changed = true; fired = true;
+            }
+          }
+        }
+
+        if (!fired && mins >= 1200 && mins <= 1210 && nf.noquest !== todayStr) {
+          var usedToday = ctx.log.filter(function (l) { return sameDate(l.ts, todayStr); }).length;
+          nf.noquest = todayStr; changed = true;
+          if (usedToday === 0) { fireNudge("Discipline check", "No quests logged yet today — even 15 minutes counts."); fired = true; }
+        }
+
+        if (changed) setNudges({ lastFired: nf, interestPointer: newPointer });
+      }, 60000);
+      return function () { clearInterval(id); };
+    }, []);
+
+    function addInterest() {
+      if (!interestTitle.trim()) return;
+      setInterests(interests.concat([{ id: Date.now(), title: interestTitle.trim(), done: false }]));
+      setInterestTitle(""); setAddingInterest(false);
+    }
+    function toggleInterest(id) {
+      setInterests(interests.map(function (i) { return i.id === id ? Object.assign({}, i, { done: !i.done }) : i; }));
+    }
+    function removeInterest(id) {
+      setInterests(interests.filter(function (i) { return i.id !== id; }));
+    }
 
     var totalLevel = STAT_KEYS.reduce(function (sum, k) { return sum + levelInfo(stats[k].xp).level; }, 0);
     var rank = RANKS.slice().reverse().find(function (r) { return totalLevel >= r.min; }) || RANKS[0];
@@ -381,6 +674,47 @@
       setOpenQuest(null); setDetailText(""); setMinutes(25);
     }
 
+    function startTimer(q) {
+      if (capReached || activeTimer) return;
+      var mins = Math.max(1, Math.min(600, Number(minutes) || 0));
+      var detail = q.inputType === "select"
+        ? (detailText || SUBJECTS[0])
+        : (q.hasDetail ? (detailText.trim() || q.label) : q.defaultDetail);
+      setActiveTimer({ questId: q.id, stat: q.stat, label: q.label, detail: detail, totalMin: mins, endAt: Date.now() + mins * 60000 });
+      setOpenQuest(null); setDetailText(""); setMinutes(25);
+    }
+    function cancelTimer() { setActiveTimer(null); }
+
+    var timerCtxRef = useRef({ stats: stats, log: log, streak: streak, lastActiveDate: lastActiveDate });
+    timerCtxRef.current = { stats: stats, log: log, streak: streak, lastActiveDate: lastActiveDate };
+
+    useEffect(function () {
+      if (!activeTimer) return;
+      var id = setInterval(function () {
+        if (Date.now() >= activeTimer.endAt) {
+          clearInterval(id);
+          var ctx = timerCtxRef.current;
+          var prevLevel = levelInfo(ctx.stats[activeTimer.stat].xp).level;
+          var nextXP = ctx.stats[activeTimer.stat].xp + activeTimer.totalMin;
+          var newLevel = levelInfo(nextXP).level;
+          var ns = {}; STAT_KEYS.forEach(function (k) { ns[k] = ctx.stats[k]; });
+          ns[activeTimer.stat] = { xp: nextXP };
+          setStats(ns);
+          if (newLevel > prevLevel) {
+            setFlash({ stat: activeTimer.stat, level: newLevel });
+            setTimeout(function () { setFlash(null); }, 2200);
+          }
+          setLog([{ id: Date.now(), stat: activeTimer.stat, label: activeTimer.label, detail: activeTimer.detail, minutes: activeTimer.totalMin, ts: Date.now() }].concat(ctx.log).slice(0, 80));
+          var todayStr = dateStr();
+          if (ctx.lastActiveDate !== todayStr) { setStreak(ctx.streak + 1); setLastActiveDate(todayStr); }
+          setActiveTimer(null);
+        } else {
+          setTimerTick(function (t) { return t + 1; });
+        }
+      }, 1000);
+      return function () { clearInterval(id); };
+    }, [activeTimer]);
+
     function toggleHomeTask(id) {
       var day = Object.assign({}, homeTasks[today] || {});
       day[id] = day[id] ? undefined : Date.now();
@@ -394,10 +728,83 @@
       setWeeklyTasks(next);
     }
     function adjustConfidence(name, delta) {
-      var cur = (subjects[name] && subjects[name].confidence) || 0;
+      var entry = subjects[name] || { confidence: 50, grades: [] };
       var next = Object.assign({}, subjects);
-      next[name] = { confidence: Math.max(0, Math.min(100, cur + delta)) };
+      next[name] = Object.assign({}, entry, { confidence: Math.max(0, Math.min(100, entry.confidence + delta)) });
       setSubjects(next);
+    }
+    function addGrade(name, value, label) {
+      var v = Math.max(0, Math.min(20, Number(value)));
+      if (isNaN(v)) return;
+      var entry = subjects[name] || { confidence: 50, grades: [] };
+      var grades = (entry.grades || []).concat([{ id: Date.now(), value: v, label: label || "", date: dateStr() }]);
+      var next = Object.assign({}, subjects);
+      next[name] = Object.assign({}, entry, { grades: grades });
+      setSubjects(next);
+    }
+    function removeGrade(name, id) {
+      var entry = subjects[name] || { confidence: 50, grades: [] };
+      var next = Object.assign({}, subjects);
+      next[name] = Object.assign({}, entry, { grades: (entry.grades || []).filter(function (g) { return g.id !== id; }) });
+      setSubjects(next);
+    }
+    function subjectAvgGrade(name) {
+      var grades = (subjects[name] && subjects[name].grades) || [];
+      if (!grades.length) return null;
+      var sum = grades.reduce(function (s, g) { return s + g.value; }, 0);
+      return Math.round((sum / grades.length) * 10) / 10;
+    }
+    function addChapter(name, title) {
+      if (!title.trim()) return;
+      var entry = subjects[name] || { confidence: 50, grades: [], chapters: [] };
+      var chapters = (entry.chapters || []).concat([{ id: Date.now(), title: title.trim(), understanding: 50 }]);
+      var next = Object.assign({}, subjects);
+      next[name] = Object.assign({}, entry, { chapters: chapters });
+      setSubjects(next);
+    }
+    function removeChapter(name, id) {
+      var entry = subjects[name] || { confidence: 50, grades: [], chapters: [] };
+      var next = Object.assign({}, subjects);
+      next[name] = Object.assign({}, entry, { chapters: (entry.chapters || []).filter(function (c) { return c.id !== id; }) });
+      setSubjects(next);
+      setExamChapterIds(examChapterIds.filter(function (cid) { return cid !== id; }));
+    }
+    function adjustChapterUnderstanding(name, id, delta) {
+      var entry = subjects[name] || { confidence: 50, grades: [], chapters: [] };
+      var chapters = (entry.chapters || []).map(function (c) {
+        if (c.id !== id) return c;
+        return Object.assign({}, c, { understanding: Math.max(0, Math.min(100, c.understanding + delta)) });
+      });
+      var next = Object.assign({}, subjects);
+      next[name] = Object.assign({}, entry, { chapters: chapters });
+      setSubjects(next);
+    }
+    function toggleExamChapter(id) {
+      setExamChapterIds(function (prev) {
+        return prev.indexOf(id) !== -1 ? prev.filter(function (x) { return x !== id; }) : prev.concat([id]);
+      });
+    }
+    function addExam() {
+      if (!examDate) return;
+      setExams(exams.concat([{ id: Date.now(), subject: examSubject, date: examDate, chapterIds: examChapterIds.slice() }]));
+      setExamDate(""); setExamChapterIds([]); setAddingExam(false);
+    }
+    function removeExam(id) {
+      setExams(exams.filter(function (x) { return x.id !== id; }));
+    }
+    function examChapterTitles(exam) {
+      var chapters = (subjects[exam.subject] && subjects[exam.subject].chapters) || [];
+      return exam.chapterIds.map(function (id) {
+        var c = chapters.filter(function (ch) { return ch.id === id; })[0];
+        return c ? c.title : null;
+      }).filter(Boolean);
+    }
+    function dateForWeekday(wkKey) {
+      var order = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+      var idx = order.indexOf(wkKey);
+      var monday = mondayOf(new Date());
+      var d = new Date(monday); d.setDate(d.getDate() + idx);
+      return isoDate(d);
     }
     function subjectMinutes(name) {
       return log.filter(function (l) { return l.stat === "intellect" && l.detail === name; })
@@ -420,6 +827,215 @@
       setHomework(homework.map(function (h) { return h.id === id ? Object.assign({}, h, { done: !h.done }) : h; }));
     }
 
+    function awardStat(key, amount) {
+      var prevLevel = levelInfo(stats[key].xp).level;
+      var nextXP = stats[key].xp + amount;
+      var ns = {}; STAT_KEYS.forEach(function (k) { ns[k] = stats[k]; });
+      ns[key] = { xp: nextXP };
+      setStats(ns);
+      var newLevel = levelInfo(nextXP).level;
+      if (newLevel > prevLevel) {
+        setFlash({ stat: key, level: newLevel });
+        setTimeout(function () { setFlash(null); }, 2200);
+      }
+    }
+
+    function findCard(deckId, cardId) {
+      for (var i = 0; i < decks.length; i++) {
+        if (decks[i].id !== deckId) continue;
+        for (var j = 0; j < decks[i].cards.length; j++) {
+          if (decks[i].cards[j].id === cardId) return { deck: decks[i], card: decks[i].cards[j] };
+        }
+      }
+      return null;
+    }
+
+    function dueCardRefs() {
+      var t = dateStr();
+      var refs = [];
+      decks.forEach(function (dk) {
+        dk.cards.forEach(function (c) {
+          if (c.due <= t) refs.push({ deckId: dk.id, cardId: c.id, box: c.box, due: c.due });
+        });
+      });
+      refs.sort(function (a, b) { return a.box !== b.box ? a.box - b.box : a.due.localeCompare(b.due); });
+      return refs;
+    }
+
+    function doneToday() {
+      return recallStats.date === dateStr() ? recallStats.done : 0;
+    }
+
+    function startRecall(bonus) {
+      var remaining = bonus ? RECALL_BONUS : Math.max(0, RECALL_GOAL - doneToday());
+      var refs = dueCardRefs().slice(0, remaining);
+      if (!refs.length) return;
+      setSession({ queue: refs.map(function (r) { return { deckId: r.deckId, cardId: r.cardId, failed: false }; }), total: refs.length, got: 0, xp: 0, finished: false });
+      setShowBack(false);
+    }
+
+    function answerCard(ok) {
+      if (!session || !session.queue.length) return;
+      var cur = session.queue[0];
+      var t = dateStr();
+      var rest = session.queue.slice(1);
+
+      setDecks(decks.map(function (dk) {
+        if (dk.id !== cur.deckId) return dk;
+        return Object.assign({}, dk, { cards: dk.cards.map(function (c) {
+          if (c.id !== cur.cardId) return c;
+          if (!ok || cur.failed) return Object.assign({}, c, { box: 0, due: addDaysStr(t, 1) });
+          var nb = Math.min(c.box + 1, 5);
+          return Object.assign({}, c, { box: nb, due: addDaysStr(t, RECALL_GAP[nb]) });
+        }) });
+      }));
+
+      if (!ok) {
+        setSession(Object.assign({}, session, { queue: rest.concat([{ deckId: cur.deckId, cardId: cur.cardId, failed: true }]) }));
+        setShowBack(false);
+        return;
+      }
+
+      var gain = cur.failed ? 1 : 2;
+      awardStat("intellect", gain);
+      setRecallStats({ date: t, done: doneToday() + 1 });
+      if (lastActiveDate !== t) { setStreak(streak + 1); setLastActiveDate(t); }
+      setSession(Object.assign({}, session, { queue: rest, got: session.got + 1, xp: session.xp + gain, finished: rest.length === 0 }));
+      setShowBack(false);
+    }
+
+    function importDeckFile(ev) {
+      var file = ev.target.files && ev.target.files[0];
+      ev.target.value = "";
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function (loadEv) {
+        try {
+          var data = JSON.parse(loadEv.target.result);
+          if (!data || !Array.isArray(data.cards) || !data.cards.length) throw new Error("no cards");
+          var t = dateStr();
+          var title = String(data.title || "Untitled deck");
+          var subject = String(data.subject || "");
+          var existing = decks.filter(function (d) { return d.title === title && d.subject === subject; })[0];
+          var oldByFront = {};
+          if (existing) existing.cards.forEach(function (c) { oldByFront[c.front] = c; });
+          var base = Date.now();
+          var cards = data.cards.filter(function (c) { return c && c.front && c.back; }).map(function (c, i) {
+            var old = oldByFront[c.front];
+            return {
+              id: old ? old.id : base + i,
+              front: String(c.front), back: String(c.back), tag: String(c.tag || ""),
+              box: old ? old.box : 0, due: old ? old.due : t
+            };
+          });
+          if (!cards.length) throw new Error("no valid cards");
+          if (existing) {
+            setDecks(decks.map(function (d) { return d.id === existing.id ? Object.assign({}, d, { cards: cards }) : d; }));
+            alert("Deck updated: " + cards.length + " cards (your progress was kept).");
+          } else {
+            setDecks(decks.concat([{ id: base, title: title, subject: subject, cards: cards }]));
+            alert("Deck imported: " + cards.length + " cards.");
+          }
+        } catch (err) {
+          alert("Couldn't read that deck — make sure it's a deck .json made for ASCENT.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function removeDeck(id) {
+      if (!window.confirm("Delete this deck and its progress?")) return;
+      setDecks(decks.filter(function (d) { return d.id !== id; }));
+      if (session) setSession(null);
+    }
+
+    function addClub() {
+      if (!newClubName.trim()) return;
+      var id = Date.now();
+      setClubs(clubs.concat([{ id: id, name: newClubName.trim(), bureau: newClubBureau }]));
+      setActiveClub(id); setNewClubName(""); setNewClubBureau(false); setAddingClub(false);
+    }
+    function removeClub(id) {
+      var c = clubs.filter(function (x) { return x.id === id; })[0];
+      if (!c || !window.confirm("Remove " + c.name + " and everything tracked under it?")) return;
+      var rest = clubs.filter(function (x) { return x.id !== id; });
+      setClubs(rest);
+      setClubItems(clubItems.filter(function (ci) { return ci.clubId !== id; }));
+      if (activeClub === id && rest.length) setActiveClub(rest[0].id);
+    }
+    function addClubItem(isIdea) {
+      if (!ciTitle.trim()) return;
+      if (!isIdea && !ciDate) return;
+      var item = { id: Date.now(), clubId: activeClub, kind: isIdea ? "idea" : ciKind, title: ciTitle.trim(), done: false };
+      if (isIdea) { item.note = ciNote.trim(); item.status = "new"; } else { item.date = ciDate; }
+      setClubItems(clubItems.concat([item]));
+      setCiTitle(""); setCiDate(""); setCiNote(""); setAddingClubItem(false);
+    }
+    function toggleClubItem(id) {
+      setClubItems(clubItems.map(function (ci) { return ci.id === id ? Object.assign({}, ci, { done: !ci.done }) : ci; }));
+    }
+    function cycleIdeaStatus(id) {
+      var order = ["new", "planned", "done"];
+      setClubItems(clubItems.map(function (ci) {
+        if (ci.id !== id) return ci;
+        return Object.assign({}, ci, { status: order[(order.indexOf(ci.status || "new") + 1) % 3] });
+      }));
+    }
+    function removeClubItem(id) {
+      setClubItems(clubItems.filter(function (ci) { return ci.id !== id; }));
+    }
+
+    function exportSave() {
+      var data = {
+        stats: stats, log: log, homeTasks: homeTasks, weeklyTasks: weeklyTasks,
+        subjects: subjects, events: events, homework: homework,
+        streak: streak, lastActiveDate: lastActiveDate, lastDecayDate: lastDecayDate,
+        interests: interests, nudges: nudges, activeTimer: activeTimer, exams: exams,
+        decks: decks, recallStats: recallStats, clubs: clubs, clubItems: clubItems
+      };
+      var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = "ascent-backup-" + dateStr() + ".json";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    function triggerImport() { if (importRef.current) importRef.current.click(); }
+    function handleImportFile(ev) {
+      var file = ev.target.files && ev.target.files[0];
+      ev.target.value = "";
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function (loadEv) {
+        try {
+          var data = JSON.parse(loadEv.target.result);
+          setStats(data.stats || emptyStats());
+          setLog(data.log || []);
+          setHomeTasks(data.homeTasks || {});
+          setWeeklyTasks(data.weeklyTasks || {});
+          setSubjects(data.subjects || emptySubjects());
+          setEvents(data.events || []);
+          setHomework(data.homework || []);
+          setInterests(data.interests || []);
+          setNudges(data.nudges || { lastFired: {}, interestPointer: 0 });
+          setStreak(data.streak || 0);
+          setLastActiveDate(data.lastActiveDate || null);
+          setActiveTimer(data.activeTimer || null);
+          setExams(data.exams || []);
+          setDecks(data.decks || []);
+          setRecallStats(data.recallStats || { date: null, done: 0 });
+          setClubs(data.clubs || SEED_CLUBS);
+          setClubItems(data.clubItems || []);
+          alert("Progress imported.");
+        } catch (err) {
+          alert("Couldn't read that file — make sure it's an ASCENT backup .json.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    var weekInfo = getWeekInfo(new Date());
+    var WEEK = buildWeek(weekInfo);
     var day = WEEK[activeDay];
     var isToday = activeDay === todayKey();
 
@@ -448,6 +1064,10 @@
     });
 
     var kids = [];
+    var todayKids = [];
+    var growthKids = [];
+    var listsKids = [];
+    var settingsKids = [];
 
     /* flash */
     if (flash) {
@@ -472,8 +1092,48 @@
       )
     ));
 
+    /* nav tabs */
+    var NAV_TABS = [
+      { key: "today", label: "Today", icon: IHome },
+      { key: "growth", label: "Growth", icon: ITarget },
+      { key: "lists", label: "Lists", icon: IClipboard },
+      { key: "settings", label: "More", icon: IDots }
+    ];
+    kids.push(e("div", { key: "navbar", style: S.navBar },
+      NAV_TABS.map(function (t) {
+        var on = navTab === t.key;
+        return e("button", {
+          key: t.key, className: "asc-mono", style: Object.assign({}, S.navBtn, { color: on ? "#EDEBE6" : "#6B6B6B" }),
+          onClick: function () { setNavTab(t.key); }
+        },
+          e(t.icon, { size: 18, color: on ? "#B3272C" : "#6B6B6B" }),
+          e("span", { style: { fontSize: 9, marginTop: 3 } }, t.label)
+        );
+      })
+    ));
+
+    /* notifications */
+    var notifLabel = notifPermission === "granted" ? "Nudges active"
+      : notifPermission === "denied" ? "Blocked — enable in browser site settings"
+      : notifPermission === "unsupported" ? "Not supported in this browser"
+      : "Nudges off";
+    var notifColor = notifPermission === "granted" ? "#5FBF7A" : notifPermission === "denied" ? "#C4453D" : "#7A7A7A";
+    settingsKids.push(e("div", { key: "notif", style: Object.assign({}, S.section, { marginBottom: 16 }) },
+      e("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", background: "#131313", border: "1px solid #232323", borderRadius: 4, padding: "9px 10px" } },
+        e("div", { style: { display: "flex", alignItems: "center", gap: 7 } },
+          e(IBell, { size: 14, color: notifColor }),
+          e("span", { className: "asc-mono", style: { fontSize: 11, color: notifColor } }, notifLabel)
+        ),
+        notifPermission === "default"
+          ? e("button", { className: "asc-mono", style: { ...S.addBtn, padding: "6px 10px", fontSize: 10 }, onClick: enableNotifications }, "ENABLE")
+          : notifPermission === "granted"
+          ? e("button", { className: "asc-mono", style: { ...S.addBtn, padding: "6px 10px", fontSize: 10 }, onClick: function () { fireNudge("Test nudge", "If you can see this, notifications are working."); } }, "TEST")
+          : null
+      )
+    ));
+
     /* stat rail */
-    kids.push(e("div", { key: "rail", className: "asc-scroll", style: S.statRail },
+    growthKids.push(e("div", { key: "rail", className: "asc-scroll", style: S.statRail },
       STAT_KEYS.map(function (key) {
         var meta = STAT_META[key], info = levelInfo(stats[key].xp);
         var pct = Math.round((info.into / info.span) * 100);
@@ -492,7 +1152,7 @@
     ));
 
     /* day selector */
-    kids.push(e("div", { key: "days", style: S.dayRow },
+    todayKids.push(e("div", { key: "days", style: S.dayRow },
       DAYS.map(function (d) {
         return e("button", {
           key: d.key, className: "asc-mono",
@@ -510,6 +1170,8 @@
     var tl = [];
     tl.push(e("div", { key: "t", className: "asc-display", style: Object.assign({}, S.sectionTitle, { marginBottom: 10 }) },
       DAYS.find(function (d) { return d.key === activeDay; }).full + (isToday ? " · TODAY" : "")));
+    tl.push(e("div", { key: "wk", className: "asc-mono", style: { fontSize: 10, color: "#6B6B6B", marginBottom: 10 } },
+      weekInfo.holiday ? "Holiday week — no classes" : "Week " + weekInfo.type));
 
     if (day.free) {
       tl.push(e("div", { key: "free", className: "asc-mono", style: S.freeNote },
@@ -528,16 +1190,31 @@
         e("span", { className: "asc-mono", style: S.timelineTime }, "—"),
         e("span", { className: "asc-mono", style: S.timelineLabel }, "Online — at home")));
 
+      var tabDate = dateForWeekday(activeDay);
       day.blocks.forEach(function (b, i) {
-        tl.push(e("div", { key: "b" + i, style: S.timelineRow },
-          e(IClock, { size: 13, color: "#B3272C" }),
-          e("span", { className: "asc-mono", style: S.timelineTime }, b.time),
-          e("div", { style: { display: "flex", flexDirection: "column" } },
-            e("span", { className: "asc-mono", style: S.timelineLabel }, b.course),
-            e("span", { className: "asc-mono", style: { fontSize: 10, color: "#6B6B6B", display: "flex", alignItems: "center", gap: 3, marginTop: 2 } },
-              e(IPin, { size: 9, color: "#6B6B6B" }), b.room + " · " + b.type)
-          )
-        ));
+        var examHere = exams.filter(function (ex) { return ex.subject === b.course && ex.date === tabDate; })[0];
+        if (examHere) {
+          var chapTitles = examChapterTitles(examHere);
+          tl.push(e("div", { key: "b" + i, style: Object.assign({}, S.timelineRow, { background: "#1A1010" }) },
+            e(ITarget, { size: 13, color: "#E8B84B" }),
+            e("span", { className: "asc-mono", style: S.timelineTime }, b.time),
+            e("div", { style: { display: "flex", flexDirection: "column" } },
+              e("span", { className: "asc-display", style: { fontSize: 13, color: "#E8B84B" } }, "EXAM — " + b.course),
+              e("span", { className: "asc-mono", style: { fontSize: 10, color: "#C9A86A", marginTop: 2 } },
+                chapTitles.length ? chapTitles.join(", ") : "No chapters selected")
+            )
+          ));
+        } else {
+          tl.push(e("div", { key: "b" + i, style: S.timelineRow },
+            e(IClock, { size: 13, color: "#B3272C" }),
+            e("span", { className: "asc-mono", style: S.timelineTime }, b.time),
+            e("div", { style: { display: "flex", flexDirection: "column" } },
+              e("span", { className: "asc-mono", style: S.timelineLabel }, b.course),
+              e("span", { className: "asc-mono", style: { fontSize: 10, color: "#6B6B6B", display: "flex", alignItems: "center", gap: 3, marginTop: 2 } },
+                e(IPin, { size: 9, color: "#6B6B6B" }), b.room + " · " + b.type)
+            )
+          ));
+        }
       });
 
       if (day.note) tl.push(e("div", { key: "note", className: "asc-mono", style: S.dayNote }, day.note));
@@ -563,7 +1240,7 @@
         })
       ));
     }
-    kids.push(e("div", { key: "timeline", style: S.section }, tl));
+    todayKids.push(e("div", { key: "timeline", style: S.section }, tl));
 
     /* quest board */
     var qb = [];
@@ -576,12 +1253,26 @@
       qb.push(e("div", { key: "cap", className: "asc-mono", style: Object.assign({}, S.freeNote, { marginBottom: 10 }) },
         "Daily quests used up. Home tasks, homework and events are still open — rest, or come back tomorrow."));
     }
+    if (activeTimer) {
+      var remainMs = Math.max(0, activeTimer.endAt - Date.now());
+      var remainSec = Math.ceil(remainMs / 1000);
+      var mm = Math.floor(remainSec / 60), ss = remainSec % 60;
+      var tMeta = STAT_META[activeTimer.stat];
+      qb.push(e("div", { key: "timer", style: Object.assign({}, S.timerBanner, { borderColor: tMeta.color }) },
+        e("div", null,
+          e("div", { className: "asc-mono", style: { fontSize: 10, color: "#7A7A7A" } }, activeTimer.label + " · " + activeTimer.detail),
+          e("div", { className: "asc-display", style: { fontSize: 26, color: tMeta.color } }, mm + ":" + (ss < 10 ? "0" : "") + ss)
+        ),
+        e("button", { className: "asc-mono", style: S.cancelBtn, onClick: cancelTimer }, "CANCEL")
+      ));
+    }
     qb.push(e("div", { key: "qg", style: S.questGrid },
       QUESTS.map(function (q) {
         var meta = STAT_META[q.stat], isOpen = openQuest === q.id;
+        var boardDisabled = capReached || !!activeTimer;
         var inner = [
           e("button", {
-            key: "btn", className: "asc-questbtn", disabled: capReached,
+            key: "btn", className: "asc-questbtn", disabled: boardDisabled,
             onClick: function () {
               setOpenQuest(isOpen ? null : q.id);
               setDetailText(q.inputType === "select" ? SUBJECTS[0] : "");
@@ -625,21 +1316,84 @@
               })
             ])
           ));
-          form.push(e("button", {
-            key: "go", className: "asc-mono",
-            onClick: function () { submitQuest(q); },
-            style: Object.assign({}, S.logBtn, { background: meta.color })
-          }, "LOG QUEST · +" + minutes + " XP"));
+          form.push(e("div", { key: "goRow", style: { display: "flex", gap: 6, marginTop: 10 } },
+            e("button", {
+              className: "asc-mono",
+              onClick: function () { startTimer(q); },
+              style: Object.assign({}, S.logBtn, { marginTop: 0, width: "auto", flex: 1, background: "transparent", border: "1px solid " + meta.color, color: meta.color })
+            }, "▶ START " + minutes + "m"),
+            e("button", {
+              className: "asc-mono",
+              onClick: function () { submitQuest(q); },
+              style: Object.assign({}, S.logBtn, { marginTop: 0, width: "auto", flex: 1, background: meta.color })
+            }, "LOG NOW")
+          ));
 
           inner.push(e("div", { key: "form", style: Object.assign({}, S.questForm, { borderColor: meta.color }) }, form));
         }
         return e("div", { key: q.id, style: { gridColumn: isOpen ? "1 / -1" : "auto" } }, inner);
       })
     ));
-    kids.push(e("div", { key: "quests", style: S.section }, qb));
+    todayKids.push(e("div", { key: "quests", style: S.section }, qb));
+
+    /* daily recall (flashcards) */
+    var dueNow = dueCardRefs().length;
+    var doneNow = doneToday();
+    var rcKids = [
+      e("div", { key: "h", style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 } },
+        e("div", { className: "asc-display", style: S.sectionTitle }, "Daily Recall"),
+        e("span", { className: "asc-mono", style: { fontSize: 10, color: doneNow >= RECALL_GOAL ? "#5FBF7A" : "#7A7A7A" } }, doneNow + "/" + RECALL_GOAL + " today")
+      )
+    ];
+    var curRef = session && session.queue.length ? findCard(session.queue[0].deckId, session.queue[0].cardId) : null;
+    if (session && !session.finished && !curRef) {
+      rcKids.push(e("button", { key: "x", className: "asc-mono", style: S.logToggle, onClick: function () { setSession(null); } }, "Card no longer exists — close"));
+    } else if (session && session.finished) {
+      rcKids.push(e("div", { key: "fin", style: Object.assign({}, S.questForm, { borderColor: "#5FBF7A", marginTop: 0 }) },
+        e("div", { className: "asc-display", style: { fontSize: 18, color: "#5FBF7A" } }, "Session complete"),
+        e("div", { className: "asc-mono", style: { fontSize: 11, color: "#9A9A9A", marginTop: 4 } }, session.got + " cards · +" + session.xp + " Intellect XP"),
+        e("button", { className: "asc-mono", style: Object.assign({}, S.logBtn, { background: "#5FBF7A" }), onClick: function () { setSession(null); } }, "DONE")
+      ));
+    } else if (session && curRef) {
+      var pctDone = Math.round((session.got / session.total) * 100);
+      rcKids.push(e("div", { key: "card", style: Object.assign({}, S.questForm, { borderColor: "#6FA8DC", marginTop: 0 }) },
+        e("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+          e("span", { className: "asc-mono", style: { fontSize: 9, color: "#6FA8DC" } }, (curRef.card.tag || curRef.deck.subject || "").toUpperCase()),
+          e("span", { className: "asc-mono", style: { fontSize: 9, color: "#6B6B6B" } }, session.got + "/" + session.total + (session.queue[0].failed ? " · retry" : ""))
+        ),
+        e("div", { style: Object.assign({}, S.barTrack, { marginTop: 6, marginBottom: 12 }) },
+          e("div", { className: "asc-bar-fill", style: Object.assign({}, S.barFill, { width: pctDone + "%", background: "#6FA8DC" }) })),
+        e("div", { className: "asc-mono", style: { fontSize: 13, lineHeight: 1.5, color: "#EDEBE6", whiteSpace: "pre-wrap" } }, curRef.card.front),
+        showBack
+          ? e("div", { key: "back" },
+              e("div", { className: "asc-mono", style: { fontSize: 12, lineHeight: 1.55, color: "#D8D8D8", whiteSpace: "pre-wrap", background: "#0A0A0A", border: "1px solid #232323", borderRadius: 3, padding: 10, marginTop: 12 } }, curRef.card.back),
+              e("div", { style: { display: "flex", gap: 6, marginTop: 10 } },
+                e("button", { className: "asc-mono", style: Object.assign({}, S.logBtn, { marginTop: 0, width: "auto", flex: 1, background: "transparent", border: "1px solid #C4453D", color: "#C4453D" }), onClick: function () { answerCard(false); } }, "AGAIN"),
+                e("button", { className: "asc-mono", style: Object.assign({}, S.logBtn, { marginTop: 0, width: "auto", flex: 1, background: "#5FBF7A" }), onClick: function () { answerCard(true); } }, "GOT IT")
+              )
+            )
+          : e("button", { className: "asc-mono", style: Object.assign({}, S.logBtn, { background: "#6FA8DC" }), onClick: function () { setShowBack(true); } }, "SHOW ANSWER"),
+        e("button", { className: "asc-mono", style: Object.assign({}, S.logToggle, { marginTop: 10 }), onClick: function () { setSession(null); } }, "End session")
+      ));
+    } else if (!decks.length) {
+      rcKids.push(e("div", { key: "none", className: "asc-mono", style: S.freeNote }, "No decks yet. Import one from Growth → Decks."));
+    } else if (doneNow < RECALL_GOAL && dueNow > 0) {
+      rcKids.push(e("div", { key: "go", style: S.questForm2 },
+        e("span", { className: "asc-mono", style: { fontSize: 11, color: "#9A9A9A" } }, dueNow + " card" + (dueNow === 1 ? "" : "s") + " due"),
+        e("button", { className: "asc-mono", style: Object.assign({}, S.addBtn, { padding: "7px 14px", fontSize: 10, color: "#6FA8DC", borderColor: "#6FA8DC" }), onClick: function () { startRecall(false); } }, "START")
+      ));
+    } else if (dueNow > 0) {
+      rcKids.push(e("div", { key: "bonus", style: S.questForm2 },
+        e("span", { className: "asc-mono", style: { fontSize: 11, color: "#5FBF7A" } }, "Daily recall done ✓"),
+        e("button", { className: "asc-mono", style: Object.assign({}, S.addBtn, { padding: "7px 14px", fontSize: 10, color: "#EDEBE6" }), onClick: function () { startRecall(true); } }, "+" + RECALL_BONUS + " MORE")
+      ));
+    } else {
+      rcKids.push(e("div", { key: "clear", className: "asc-mono", style: S.freeNote }, "Nothing due. Cards come back on their own schedule."));
+    }
+    todayKids.push(e("div", { key: "recall", style: S.section }, rcKids));
 
     /* home tasks */
-    kids.push(e("div", { key: "home", style: S.section },
+    todayKids.push(e("div", { key: "home", style: S.section },
       e("div", { className: "asc-display", style: Object.assign({}, S.sectionTitle, { marginBottom: 10 }) }, "Home Tasks"),
       e("div", { style: S.homeTaskRow },
         HOME_TASKS.map(function (t) {
@@ -654,7 +1408,7 @@
 
     /* weekly tasks (sunday tab) */
     if (activeDay === "sun") {
-      kids.push(e("div", { key: "weekly", style: S.section },
+      todayKids.push(e("div", { key: "weekly", style: S.section },
         e("div", { className: "asc-display", style: Object.assign({}, S.sectionTitle, { marginBottom: 10 }) }, "Weekly Tasks"),
         !isSundayNow ? e("div", { className: "asc-mono", style: { fontSize: 10, color: "#6B6B6B", marginBottom: 8 } }, "Preview — unlocks on Sunday") : null,
         e("div", { style: S.homeTaskRow },
@@ -674,8 +1428,33 @@
       ));
     }
 
+    /* weekly recap */
+    var weekStart = Date.now() - 7 * 86400000;
+    var weekLog = log.filter(function (l) { return l.ts >= weekStart; });
+    var weekXp = {}; STAT_KEYS.forEach(function (k) { weekXp[k] = 0; });
+    weekLog.forEach(function (l) { weekXp[l.stat] = (weekXp[l.stat] || 0) + l.minutes; });
+    var maxWeekXp = Math.max(1, Math.max.apply(null, STAT_KEYS.map(function (k) { return weekXp[k]; })));
+    growthKids.push(e("div", { key: "recap", style: S.section },
+      e("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 } },
+        e("div", { className: "asc-display", style: S.sectionTitle }, "This Week"),
+        e("span", { className: "asc-mono", style: { fontSize: 10, color: "#7A7A7A" } }, weekLog.length + " quests")
+      ),
+      e("div", { style: { background: "#131313", border: "1px solid #232323", borderRadius: 4, padding: "12px 12px 4px" } },
+        STAT_KEYS.map(function (k) {
+          var meta = STAT_META[k];
+          var pct = Math.round((weekXp[k] / maxWeekXp) * 100);
+          return e("div", { key: k, style: S.recapBarRow },
+            e("span", { className: "asc-mono", style: S.recapBarLabel }, meta.label),
+            e("div", { style: S.recapBarTrack },
+              e("div", { className: "asc-bar-fill", style: Object.assign({}, S.recapBarFill, { width: pct + "%", background: meta.color }) })),
+            e("span", { className: "asc-mono", style: S.recapBarValue }, "+" + weekXp[k])
+          );
+        })
+      )
+    ));
+
     /* subjects */
-    kids.push(e("div", { key: "subj", style: S.section },
+    growthKids.push(e("div", { key: "subj", style: S.section },
       e("div", { className: "asc-display", style: Object.assign({}, S.sectionTitle, { marginBottom: 10 }) },
         e(ITarget, { size: 14, color: "#EDEBE6" }), "Subjects"),
       e("div", { style: { display: "flex", flexDirection: "column", gap: 8 } },
@@ -683,8 +1462,11 @@
           var conf = (subjects[name] && subjects[name].confidence) || 0;
           var color = conf < 40 ? "#C4453D" : conf < 70 ? "#E8B84B" : "#5FBF7A";
           var mins = subjectMinutes(name), pend = hwPending(name);
-          return e("div", { key: name, style: S.subjectRow },
-            e("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 } },
+          var grades = (subjects[name] && subjects[name].grades) || [];
+          var avg = subjectAvgGrade(name);
+          var gradeOpen = gradeFor === name;
+          var rowKids = [
+            e("div", { key: "top", style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 } },
               e("span", { className: "asc-mono", style: { fontSize: 11.5, flex: 1 } }, name),
               e("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
                 e("button", { className: "asc-mono", style: S.smallStep, onClick: function () { adjustConfidence(name, -10); } }, "−"),
@@ -692,14 +1474,206 @@
                 e("button", { className: "asc-mono", style: S.smallStep, onClick: function () { adjustConfidence(name, 10); } }, "+")
               )
             ),
-            e("div", { style: S.barTrack },
+            e("div", { key: "bar", style: S.barTrack },
               e("div", { className: "asc-bar-fill", style: Object.assign({}, S.barFill, { width: conf + "%", background: color }) })),
-            e("div", { className: "asc-mono", style: { fontSize: 9, color: "#6B6B6B", marginTop: 3 } },
-              mins + "m studied" + (pend > 0 ? " · " + pend + " homework pending" : ""))
-          );
+            e("div", { key: "meta", style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 3 } },
+              e("span", { className: "asc-mono", style: { fontSize: 9, color: "#6B6B6B" } },
+                mins + "m studied" + (pend > 0 ? " · " + pend + " homework pending" : "")),
+              e("button", {
+                className: "asc-mono", style: { fontSize: 9, color: "#6FA8DC", background: "transparent", border: "none", padding: 0 },
+                onClick: function () { setGradeFor(gradeOpen ? null : name); setGradeValue(""); setGradeLabel(""); }
+              }, avg !== null ? "Avg " + avg + "/20 (" + grades.length + ")" : "+ add grade")
+            )
+          ];
+          if (grades.length) {
+            rowKids.push(e("div", { key: "chips", style: { display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 } },
+              grades.map(function (g) {
+                return e("span", { key: g.id, className: "asc-mono", style: S.gradeChip },
+                  g.value + "/20" + (g.label ? " " + g.label : ""),
+                  e("button", { style: { background: "transparent", border: "none", padding: 0, display: "flex" }, onClick: function () { removeGrade(name, g.id); } },
+                    e(IX, { size: 9, color: "#5A5A5A" }))
+                );
+              })
+            ));
+          }
+          if (gradeOpen) {
+            rowKids.push(e("div", { key: "gform", style: { display: "flex", gap: 6, marginTop: 8 } },
+              e("input", {
+                type: "number", min: 0, max: 20, step: 0.5, placeholder: "/20", className: "asc-mono",
+                value: gradeValue, onChange: function (ev) { setGradeValue(ev.target.value); },
+                style: Object.assign({}, S.numInput, { width: 52 })
+              }),
+              e("input", {
+                placeholder: "label (optional)", className: "asc-mono",
+                value: gradeLabel, onChange: function (ev) { setGradeLabel(ev.target.value); },
+                style: Object.assign({}, S.input, { flex: 1 })
+              }),
+              e("button", {
+                className: "asc-mono",
+                style: { border: "none", borderRadius: 3, background: "#6FA8DC", color: "#0A0A0A", fontSize: 10, padding: "0 12px" },
+                onClick: function () { addGrade(name, gradeValue, gradeLabel); setGradeValue(""); setGradeLabel(""); setGradeFor(null); }
+              }, "ADD")
+            ));
+          }
+
+          var chapters = (subjects[name] && subjects[name].chapters) || [];
+          var chaptersOpen = chaptersOpenFor === name;
+          rowKids.push(e("button", {
+            key: "chToggle", className: "asc-mono",
+            style: { fontSize: 9, color: "#B98AE0", background: "transparent", border: "none", padding: 0, marginTop: 6, display: "block" },
+            onClick: function () { setChaptersOpenFor(chaptersOpen ? null : name); setChapterTitle(""); }
+          }, (chaptersOpen ? "▾ " : "▸ ") + chapters.length + " chapter" + (chapters.length === 1 ? "" : "s")));
+
+          if (chaptersOpen) {
+            chapters.forEach(function (ch) {
+              var chColor = ch.understanding < 40 ? "#C4453D" : ch.understanding < 70 ? "#E8B84B" : "#5FBF7A";
+              rowKids.push(e("div", { key: "ch" + ch.id, style: { marginTop: 7, paddingLeft: 10, borderLeft: "2px solid #232323" } },
+                e("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 } },
+                  e("span", { className: "asc-mono", style: { fontSize: 10.5, flex: 1, color: "#D8D8D8" } }, ch.title),
+                  e("button", { className: "asc-mono", style: S.smallStep, onClick: function () { adjustChapterUnderstanding(name, ch.id, -10); } }, "−"),
+                  e("span", { className: "asc-mono", style: { fontSize: 9, color: chColor, width: 26, textAlign: "center" } }, ch.understanding + "%"),
+                  e("button", { className: "asc-mono", style: S.smallStep, onClick: function () { adjustChapterUnderstanding(name, ch.id, 10); } }, "+"),
+                  e("button", { style: { background: "transparent", border: "none", padding: 2, display: "flex" }, onClick: function () { removeChapter(name, ch.id); } },
+                    e(IX, { size: 10, color: "#5A5A5A" }))
+                ),
+                e("div", { style: Object.assign({}, S.barTrack, { marginTop: 4 }) },
+                  e("div", { className: "asc-bar-fill", style: Object.assign({}, S.barFill, { width: ch.understanding + "%", background: chColor }) }))
+              ));
+            });
+            rowKids.push(e("div", { key: "chform", style: { display: "flex", gap: 6, marginTop: 8 } },
+              e("input", {
+                placeholder: "New chapter title", className: "asc-mono",
+                value: chapterTitle, onChange: function (ev) { setChapterTitle(ev.target.value); },
+                style: Object.assign({}, S.input, { flex: 1 })
+              }),
+              e("button", {
+                className: "asc-mono",
+                style: { border: "none", borderRadius: 3, background: "#B98AE0", color: "#0A0A0A", fontSize: 10, padding: "0 12px" },
+                onClick: function () { addChapter(name, chapterTitle); setChapterTitle(""); }
+              }, "ADD")
+            ));
+          }
+
+          return e("div", { key: name, style: S.subjectRow }, rowKids);
         })
       )
     ));
+
+    /* exams */
+    var upcomingExams = exams.filter(function (ex) { return daysUntil(ex.date) >= 0; }).sort(function (a, b) { return a.date.localeCompare(b.date); });
+    var examFormChapters = (subjects[examSubject] && subjects[examSubject].chapters) || [];
+    var exKids = [
+      e("div", { key: "h", style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 } },
+        e("div", { className: "asc-display", style: S.sectionTitle }, e(ITarget, { size: 14, color: "#E8B84B" }), "Exams"),
+        e("button", { style: S.addBtn, onClick: function () { setAddingExam(!addingExam); setExamChapterIds([]); setExamDate(""); } },
+          addingExam ? e(IX, { size: 13, color: "#EDEBE6" }) : e(IPlus, { size: 13, color: "#EDEBE6" }))
+      )
+    ];
+    if (addingExam) {
+      var exFormKids = [
+        e("select", {
+          key: "sel", className: "asc-select asc-mono", value: examSubject,
+          onChange: function (ev) { setExamSubject(ev.target.value); setExamChapterIds([]); }
+        }, SUBJECTS.map(function (s) { return e("option", { key: s, value: s }, s); })),
+        e("input", {
+          key: "date", type: "date", className: "asc-datein asc-mono", value: examDate,
+          style: { marginTop: 6 }, onChange: function (ev) { setExamDate(ev.target.value); }
+        })
+      ];
+      exFormKids.push(e("div", { key: "clabel", className: "asc-mono", style: { fontSize: 10, color: "#7A7A7A", marginTop: 8 } },
+        examFormChapters.length ? "CHAPTERS ON THIS EXAM" : "No chapters added for this subject yet — you can still schedule the date."));
+      if (examFormChapters.length) {
+        exFormKids.push(e("div", { key: "cchips", style: { display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 } },
+          examFormChapters.map(function (ch) {
+            var picked = examChapterIds.indexOf(ch.id) !== -1;
+            return e("button", {
+              key: ch.id, className: "asc-mono",
+              onClick: function () { toggleExamChapter(ch.id); },
+              style: Object.assign({}, S.chip, { borderColor: picked ? "#E8B84B" : "#2A2A2A", color: picked ? "#E8B84B" : "#8A8A8A" })
+            }, ch.title);
+          })
+        ));
+      }
+      exFormKids.push(e("button", {
+        key: "go", className: "asc-mono",
+        style: Object.assign({}, S.logBtn, { background: "#E8B84B", color: "#0A0A0A" }),
+        onClick: addExam
+      }, "SCHEDULE EXAM"));
+      exKids.push(e("div", { key: "f", style: Object.assign({}, S.questForm, { borderColor: "#E8B84B", marginBottom: 8, marginTop: 0 }) }, exFormKids));
+    }
+    if (!upcomingExams.length && !addingExam) {
+      exKids.push(e("div", { key: "empty", className: "asc-mono", style: { fontSize: 11, color: "#5A5A5A" } }, "No exams scheduled."));
+    }
+    upcomingExams.forEach(function (ex) {
+      var du = daysUntil(ex.date);
+      var titles = examChapterTitles(ex);
+      exKids.push(e("div", { key: ex.id, style: S.listRow },
+        e("div", { style: { flex: 1, display: "flex", flexDirection: "column" } },
+          e("span", { className: "asc-mono", style: { fontSize: 11 } }, ex.subject),
+          titles.length ? e("span", { className: "asc-mono", style: { fontSize: 9, color: "#6B6B6B" } }, titles.join(", ")) : null
+        ),
+        e("span", { className: "asc-mono", style: { fontSize: 10, color: du <= 2 ? "#E8B84B" : "#7A7A7A" } },
+          du === 0 ? "today" : "in " + du + "d"),
+        e("button", { style: S.iconBtn, onClick: function () { removeExam(ex.id); } },
+          e(ITrash, { size: 12, color: "#5A5A5A" }))
+      ));
+    });
+    growthKids.push(e("div", { key: "exams", style: S.section }, exKids));
+
+    /* decks */
+    var dkKids = [
+      e("div", { key: "h", style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 } },
+        e("div", { className: "asc-display", style: S.sectionTitle }, "Decks"),
+        e("button", { style: S.addBtn, onClick: function () { if (deckImportRef.current) deckImportRef.current.click(); } }, e(IPlus, { size: 13, color: "#EDEBE6" }))
+      ),
+      e("input", { key: "file", type: "file", accept: "application/json,.json", ref: deckImportRef, onChange: importDeckFile, style: { display: "none" } })
+    ];
+    if (!decks.length) {
+      dkKids.push(e("div", { key: "empty", className: "asc-mono", style: { fontSize: 11, color: "#5A5A5A" } }, "Tap + to import a deck file (.json) Claude made from one of your PDFs."));
+    }
+    var tNow = dateStr();
+    decks.forEach(function (dk) {
+      var due = dk.cards.filter(function (c) { return c.due <= tNow; }).length;
+      var mastered = dk.cards.filter(function (c) { return c.box >= 4; }).length;
+      dkKids.push(e("div", { key: dk.id, style: S.listRow },
+        e("div", { style: { flex: 1, display: "flex", flexDirection: "column" } },
+          e("span", { className: "asc-mono", style: { fontSize: 11 } }, dk.title),
+          e("span", { className: "asc-mono", style: { fontSize: 9, color: "#6B6B6B" } },
+            (dk.subject ? dk.subject + " · " : "") + dk.cards.length + " cards · " + mastered + " mastered · " + due + " due")
+        ),
+        e("button", { style: S.iconBtn, onClick: function () { removeDeck(dk.id); } }, e(ITrash, { size: 12, color: "#5A5A5A" }))
+      ));
+    });
+    growthKids.push(e("div", { key: "decks", style: S.section }, dkKids));
+
+    /* interests */
+    var sortedInterests = interests.slice().sort(function (a, b) { return (a.done === b.done) ? 0 : (a.done ? 1 : -1); });
+    var intKids = [
+      e("div", { key: "h", style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 } },
+        e("div", { className: "asc-display", style: S.sectionTitle }, e(IHeart, { size: 14, color: "#EDEBE6" }), "Interests"),
+        e("button", { style: S.addBtn, onClick: function () { setAddingInterest(!addingInterest); } },
+          addingInterest ? e(IX, { size: 13, color: "#EDEBE6" }) : e(IPlus, { size: 13, color: "#EDEBE6" }))
+      )
+    ];
+    if (addingInterest) {
+      intKids.push(e("div", { key: "f", style: Object.assign({}, S.questForm, { borderColor: "#E88A6F", marginBottom: 8, marginTop: 0 }) },
+        e("input", { className: "asc-mono", placeholder: "A book, project, skill...", value: interestTitle, style: S.input, onChange: function (ev) { setInterestTitle(ev.target.value); } }),
+        e("button", { className: "asc-mono", style: Object.assign({}, S.logBtn, { background: "#E88A6F" }), onClick: addInterest }, "ADD INTEREST")
+      ));
+    }
+    if (!sortedInterests.length && !addingInterest) {
+      intKids.push(e("div", { key: "empty", className: "asc-mono", style: { fontSize: 11, color: "#5A5A5A" } }, "Nothing added yet — things you add here get the occasional nudge."));
+    }
+    sortedInterests.forEach(function (i) {
+      intKids.push(e("div", { key: i.id, style: S.listRow },
+        e("button", { style: S.iconBtn, onClick: function () { toggleInterest(i.id); } },
+          e(ICheck, { size: 13, color: i.done ? "#5FBF7A" : "#3A3A3A" })),
+        e("span", { className: "asc-mono", style: { fontSize: 11, flex: 1, textDecoration: i.done ? "line-through" : "none", opacity: i.done ? 0.4 : 1 } }, i.title),
+        e("button", { style: S.iconBtn, onClick: function () { removeInterest(i.id); } },
+          e(ITrash, { size: 12, color: "#5A5A5A" }))
+      ));
+    });
+    listsKids.push(e("div", { key: "interests", style: S.section }, intKids));
 
     /* events */
     var evKids = [
@@ -729,7 +1703,7 @@
           e(ITrash, { size: 12, color: "#5A5A5A" }))
       ));
     });
-    kids.push(e("div", { key: "events", style: S.section }, evKids));
+    listsKids.push(e("div", { key: "events", style: S.section }, evKids));
 
     /* homework */
     var hwKids = [
@@ -765,13 +1739,137 @@
           e(ITrash, { size: 12, color: "#5A5A5A" }))
       ));
     });
-    kids.push(e("div", { key: "homework", style: S.section }, hwKids));
+    listsKids.push(e("div", { key: "homework", style: S.section }, hwKids));
 
-    /* full log */
-    var lg = [e("button", { key: "tog", className: "asc-mono", style: S.logToggle, onClick: function () { setShowLog(!showLog); } },
-      (showLog ? "Hide" : "Show") + " full quest log (" + log.length + ")")];
-    if (showLog) {
-      lg.push(e("div", { key: "list", style: S.logList },
+    /* clubs */
+    var curClub = clubs.filter(function (c) { return c.id === activeClub; })[0] || clubs[0];
+    var clKids = [
+      e("div", { key: "h", style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 } },
+        e("div", { className: "asc-display", style: S.sectionTitle }, e(IUsers, { size: 14, color: "#EDEBE6" }), "Clubs"),
+        e("button", { style: S.addBtn, onClick: function () { setAddingClub(!addingClub); } },
+          addingClub ? e(IX, { size: 13, color: "#EDEBE6" }) : e(IPlus, { size: 13, color: "#EDEBE6" }))
+      )
+    ];
+    if (addingClub) {
+      clKids.push(e("div", { key: "newclub", style: Object.assign({}, S.questForm, { borderColor: "#E88A6F", marginBottom: 8, marginTop: 0 }) },
+        e("input", { className: "asc-mono", placeholder: "Club name", value: newClubName, style: S.input, onChange: function (ev) { setNewClubName(ev.target.value); } }),
+        e("button", {
+          className: "asc-mono", onClick: function () { setNewClubBureau(!newClubBureau); },
+          style: Object.assign({}, S.chip, { marginTop: 8, borderColor: newClubBureau ? "#E88A6F" : "#2A2A2A", color: newClubBureau ? "#E88A6F" : "#8A8A8A" })
+        }, (newClubBureau ? "✓ " : "") + "I'm in the bureau (enables ideas board)"),
+        e("button", { className: "asc-mono", style: Object.assign({}, S.logBtn, { background: "#E88A6F" }), onClick: addClub }, "ADD CLUB")
+      ));
+    }
+    clKids.push(e("div", { key: "chips", className: "asc-scroll", style: { display: "flex", gap: 6, overflowX: "auto", marginBottom: 10 } },
+      clubs.map(function (c) {
+        var on = curClub && c.id === curClub.id;
+        return e("button", {
+          key: c.id, className: "asc-mono",
+          onClick: function () { setActiveClub(c.id); setAddingClubItem(false); },
+          style: Object.assign({}, S.chip, { whiteSpace: "nowrap", borderColor: on ? "#E88A6F" : "#2A2A2A", color: on ? "#EDEBE6" : "#8A8A8A", background: on ? "#171010" : "transparent" })
+        }, c.name);
+      })
+    ));
+
+    if (curClub) {
+      var clubDated = clubItems.filter(function (ci) { return ci.clubId === curClub.id && ci.kind !== "idea"; })
+        .sort(function (a, b) { return a.done === b.done ? a.date.localeCompare(b.date) : (a.done ? 1 : -1); });
+      var clubIdeas = clubItems.filter(function (ci) { return ci.clubId === curClub.id && ci.kind === "idea"; });
+
+      clKids.push(e("div", { key: "dh", style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 } },
+        e("span", { className: "asc-mono", style: { fontSize: 10, color: "#7A7A7A" } }, "EVENTS & DEADLINES"),
+        e("div", { style: { display: "flex", gap: 6 } },
+          e("button", { style: S.addBtn, onClick: function () { setAddingClubItem(addingClubItem === "dated" ? false : "dated"); setCiTitle(""); setCiDate(""); } },
+            addingClubItem === "dated" ? e(IX, { size: 12, color: "#EDEBE6" }) : e(IPlus, { size: 12, color: "#EDEBE6" })),
+          e("button", { style: S.iconBtn, title: "Remove club", onClick: function () { removeClub(curClub.id); } }, e(ITrash, { size: 12, color: "#5A5A5A" }))
+        )
+      ));
+      if (addingClubItem === "dated") {
+        clKids.push(e("div", { key: "dform", style: Object.assign({}, S.questForm, { borderColor: "#E88A6F", marginBottom: 8, marginTop: 0 }) },
+          e("input", { className: "asc-mono", placeholder: "Title", value: ciTitle, style: S.input, onChange: function (ev) { setCiTitle(ev.target.value); } }),
+          e("input", { type: "date", className: "asc-datein asc-mono", value: ciDate, style: { marginTop: 6 }, onChange: function (ev) { setCiDate(ev.target.value); } }),
+          e("div", { style: { display: "flex", gap: 6, marginTop: 8 } },
+            ["event", "deadline"].map(function (k) {
+              return e("button", {
+                key: k, className: "asc-mono", onClick: function () { setCiKind(k); },
+                style: Object.assign({}, S.chip, { flex: 1, borderColor: ciKind === k ? "#E88A6F" : "#2A2A2A", color: ciKind === k ? "#E88A6F" : "#8A8A8A" })
+              }, k);
+            })
+          ),
+          e("button", { className: "asc-mono", style: Object.assign({}, S.logBtn, { background: "#E88A6F" }), onClick: function () { addClubItem(false); } }, "ADD")
+        ));
+      }
+      if (!clubDated.length && addingClubItem !== "dated") {
+        clKids.push(e("div", { key: "dempty", className: "asc-mono", style: { fontSize: 11, color: "#5A5A5A", marginBottom: 6 } }, "Nothing tracked for " + curClub.name + " yet."));
+      }
+      clubDated.forEach(function (ci) {
+        var du = daysUntil(ci.date);
+        clKids.push(e("div", { key: ci.id, style: S.listRow },
+          e("button", { style: S.iconBtn, onClick: function () { toggleClubItem(ci.id); } },
+            e(ICheck, { size: 13, color: ci.done ? "#5FBF7A" : "#3A3A3A" })),
+          e("div", { style: { flex: 1, display: "flex", flexDirection: "column", opacity: ci.done ? 0.4 : 1 } },
+            e("span", { className: "asc-mono", style: { fontSize: 11, textDecoration: ci.done ? "line-through" : "none" } }, ci.title),
+            e("span", { className: "asc-mono", style: { fontSize: 9, color: ci.kind === "deadline" ? "#C4453D" : "#6FA8DC" } }, ci.kind + " · " + ci.date)
+          ),
+          !ci.done ? e("span", { className: "asc-mono", style: { fontSize: 10, color: du < 0 ? "#C4453D" : du <= 2 ? "#E8B84B" : "#7A7A7A" } },
+            du < 0 ? "overdue" : du === 0 ? "today" : du + "d") : null,
+          e("button", { style: S.iconBtn, onClick: function () { removeClubItem(ci.id); } }, e(ITrash, { size: 12, color: "#5A5A5A" }))
+        ));
+      });
+
+      if (curClub.bureau) {
+        clKids.push(e("div", { key: "ih", style: { display: "flex", justifyContent: "space-between", alignItems: "center", margin: "14px 0 6px" } },
+          e("span", { className: "asc-mono", style: { fontSize: 10, color: "#7A7A7A" } }, "IDEAS BOARD"),
+          e("button", { style: S.addBtn, onClick: function () { setAddingClubItem(addingClubItem === "idea" ? false : "idea"); setCiTitle(""); setCiNote(""); } },
+            addingClubItem === "idea" ? e(IX, { size: 12, color: "#EDEBE6" }) : e(IPlus, { size: 12, color: "#EDEBE6" }))
+        ));
+        if (addingClubItem === "idea") {
+          clKids.push(e("div", { key: "iform", style: Object.assign({}, S.questForm, { borderColor: "#E88A6F", marginBottom: 8, marginTop: 0 }) },
+            e("input", { className: "asc-mono", placeholder: "Idea", value: ciTitle, style: S.input, onChange: function (ev) { setCiTitle(ev.target.value); } }),
+            e("input", { className: "asc-mono", placeholder: "Short note (optional)", value: ciNote, style: Object.assign({}, S.input, { marginTop: 6 }), onChange: function (ev) { setCiNote(ev.target.value); } }),
+            e("button", { className: "asc-mono", style: Object.assign({}, S.logBtn, { background: "#E88A6F" }), onClick: function () { addClubItem(true); } }, "ADD IDEA")
+          ));
+        }
+        if (!clubIdeas.length && addingClubItem !== "idea") {
+          clKids.push(e("div", { key: "iempty", className: "asc-mono", style: { fontSize: 11, color: "#5A5A5A" } }, "No ideas yet."));
+        }
+        clubIdeas.forEach(function (ci) {
+          var st = ci.status || "new";
+          var stColor = st === "done" ? "#5FBF7A" : st === "planned" ? "#E8B84B" : "#7A7A7A";
+          clKids.push(e("div", { key: ci.id, style: S.listRow },
+            e("div", { style: { flex: 1, display: "flex", flexDirection: "column", opacity: st === "done" ? 0.5 : 1 } },
+              e("span", { className: "asc-mono", style: { fontSize: 11, textDecoration: st === "done" ? "line-through" : "none" } }, ci.title),
+              ci.note ? e("span", { className: "asc-mono", style: { fontSize: 9, color: "#6B6B6B" } }, ci.note) : null
+            ),
+            e("button", {
+              className: "asc-mono", onClick: function () { cycleIdeaStatus(ci.id); },
+              style: Object.assign({}, S.chip, { fontSize: 9, borderColor: stColor, color: stColor })
+            }, st),
+            e("button", { style: S.iconBtn, onClick: function () { removeClubItem(ci.id); } }, e(ITrash, { size: 12, color: "#5A5A5A" }))
+          ));
+        });
+      }
+    }
+    listsKids.push(e("div", { key: "clubs", style: S.section }, clKids));
+
+    /* backup */
+    settingsKids.push(e("div", { key: "backup", style: S.section },
+      e("div", { className: "asc-display", style: Object.assign({}, S.sectionTitle, { marginBottom: 10 }) }, "Backup"),
+      e("div", { className: "asc-mono", style: { fontSize: 10, color: "#6B6B6B", marginBottom: 8 } },
+        "Progress lives in this browser only. Export a copy before clearing your cache or switching devices."),
+      e("div", { style: { display: "flex", gap: 8 } },
+        e("button", { className: "asc-mono", style: Object.assign({}, S.logBtn, { marginTop: 0, flex: 1, background: "transparent", border: "1px solid #2A2A2A", color: "#EDEBE6" }), onClick: exportSave }, "EXPORT"),
+        e("button", { className: "asc-mono", style: Object.assign({}, S.logBtn, { marginTop: 0, flex: 1, background: "transparent", border: "1px solid #2A2A2A", color: "#EDEBE6" }), onClick: triggerImport }, "IMPORT")
+      ),
+      e("input", { type: "file", accept: "application/json", ref: importRef, onChange: handleImportFile, style: { display: "none" } })
+    ));
+
+    /* history: quest log + exam history */
+    var pastExams = exams.filter(function (ex) { return daysUntil(ex.date) < 0; }).sort(function (a, b) { return b.date.localeCompare(a.date); });
+    settingsKids.push(e("div", { key: "history", style: S.section },
+      e("div", { className: "asc-display", style: Object.assign({}, S.sectionTitle, { marginBottom: 10 }) }, "History"),
+      e("div", { className: "asc-mono", style: { fontSize: 10, color: "#7A7A7A", marginBottom: 6 } }, "QUEST LOG (" + log.length + ")"),
+      e("div", { style: S.logList },
         log.length === 0
           ? e("div", { className: "asc-mono", style: { fontSize: 11, color: "#5A5A5A" } }, "No quests logged yet.")
           : log.map(function (l) {
@@ -781,9 +1879,27 @@
                 e("span", { className: "asc-mono", style: { fontSize: 10, color: "#6B6B6B" } }, l.minutes + "m")
               );
             })
-      ));
-    }
-    kids.push(e("div", { key: "log", style: S.section }, lg));
+      ),
+      e("div", { className: "asc-mono", style: { fontSize: 10, color: "#7A7A7A", margin: "14px 0 6px" } }, "EXAM HISTORY (" + pastExams.length + ")"),
+      e("div", { style: S.logList },
+        pastExams.length === 0
+          ? e("div", { className: "asc-mono", style: { fontSize: 11, color: "#5A5A5A" } }, "No past exams yet.")
+          : pastExams.map(function (ex) {
+              var titles = examChapterTitles(ex);
+              return e("div", { key: ex.id, style: S.logRow },
+                e("div", { style: { width: 6, height: 6, borderRadius: "50%", background: "#E8B84B", flexShrink: 0 } }),
+                e("div", { style: { flex: 1, display: "flex", flexDirection: "column" } },
+                  e("span", { className: "asc-mono", style: { fontSize: 11, color: "#C9C9C9" } }, ex.subject + " — " + ex.date),
+                  titles.length ? e("span", { className: "asc-mono", style: { fontSize: 9, color: "#6B6B6B" } }, titles.join(", ")) : null
+                ),
+                e("button", { style: S.iconBtn, onClick: function () { removeExam(ex.id); } }, e(ITrash, { size: 11, color: "#5A5A5A" }))
+              );
+            })
+      )
+    ));
+
+    var tabContent = navTab === "today" ? todayKids : navTab === "growth" ? growthKids : navTab === "lists" ? listsKids : settingsKids;
+    kids.push(e("div", { key: "tabcontent" }, tabContent));
 
     return e("div", { style: S.page }, kids);
   }
