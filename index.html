@@ -408,6 +408,7 @@
     var s7d = useState(notifInit), notifPermission = s7d[0], setNotifPermission = s7d[1];
     var s7e = useState(""), interestTitle = s7e[0], setInterestTitle = s7e[1];
     var s7f = useState(false), addingInterest = s7f[0], setAddingInterest = s7f[1];
+    var s7g = useState("checking"), swStatus = s7g[0], setSwStatus = s7g[1];
     var s7g = useState(null), gradeFor = s7g[0], setGradeFor = s7g[1];
     var s7h = useState(""), gradeValue = s7h[0], setGradeValue = s7h[1];
     var s7i = useState(""), gradeLabel = s7i[0], setGradeLabel = s7i[1];
@@ -479,16 +480,24 @@
 
     // register the service worker once, so installing to the home screen + notifications both work
     useEffect(function () {
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("sw.js").catch(function () {});
-      }
+      if (!("serviceWorker" in navigator)) { setSwStatus("unsupported"); return; }
+      navigator.serviceWorker.register("sw.js").then(function () {
+        return Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise(function (_, reject) { setTimeout(function () { reject(new Error("timeout")); }, 6000); })
+        ]);
+      }).then(function () { setSwStatus("ready"); })
+        .catch(function () { setSwStatus("failed"); });
     }, []);
 
     // Android Chrome only allows notifications through the service worker, so always go through it when available
     function fireNudge(title, body) {
       if (typeof Notification === "undefined" || Notification.permission !== "granted") return Promise.resolve(false);
       if ("serviceWorker" in navigator) {
-        return navigator.serviceWorker.ready.then(function (reg) {
+        return Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise(function (_, reject) { setTimeout(function () { reject(new Error("timeout")); }, 5000); })
+        ]).then(function (reg) {
           return reg.showNotification(title, { body: body, tag: title + Date.now() });
         }).then(function () { return true; }).catch(function () { return false; });
       }
@@ -1117,7 +1126,7 @@
     ));
 
     /* notifications */
-    var notifLabel = notifPermission === "granted" ? "Nudges active"
+    var notifLabel = notifPermission === "granted" ? (swStatus === "failed" ? "Allowed, but sw.js didn't load" : swStatus === "checking" ? "Checking…" : "Nudges active")
       : notifPermission === "denied" ? "Blocked — enable in browser site settings"
       : notifPermission === "unsupported" ? "Not supported in this browser"
       : "Nudges off";
@@ -1131,7 +1140,7 @@
         notifPermission === "default"
           ? e("button", { className: "asc-mono", style: { ...S.addBtn, padding: "6px 10px", fontSize: 10 }, onClick: enableNotifications }, "ENABLE")
           : notifPermission === "granted"
-          ? e("button", { className: "asc-mono", style: { ...S.addBtn, padding: "6px 10px", fontSize: 10 }, onClick: function () { fireNudge("Test nudge", "If you can see this, notifications are working.").then(function (ok) { if (!ok) alert("The browser refused to show it. Check Android Settings → Apps → Chrome → Notifications, and the site permission in Chrome."); }); } }, "TEST")
+          ? e("button", { className: "asc-mono", style: { ...S.addBtn, padding: "6px 10px", fontSize: 10 }, onClick: function () { fireNudge("Test nudge", "If you can see this, notifications are working.").then(function (ok) { if (!ok) alert(swStatus === "failed" ? "The background helper (sw.js) didn't load. Make sure sw.js, manifest.json and icon.svg are uploaded next to index.html in your repo." : "The browser refused to show it. Check Android Settings → Apps → Chrome → Notifications, and the site permission in Chrome."); }); } }, "TEST")
           : null
       )
     ));
