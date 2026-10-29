@@ -484,15 +484,15 @@
       }
     }, []);
 
+    // Android Chrome only allows notifications through the service worker, so always go through it when available
     function fireNudge(title, body) {
-      if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
-      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.ready.then(function (reg) {
-          reg.showNotification(title, { body: body, tag: title, icon: "icon.svg" });
-        });
-      } else {
-        try { new Notification(title, { body: body }); } catch (err) {}
+      if (typeof Notification === "undefined" || Notification.permission !== "granted") return Promise.resolve(false);
+      if ("serviceWorker" in navigator) {
+        return navigator.serviceWorker.ready.then(function (reg) {
+          return reg.showNotification(title, { body: body, tag: title + Date.now() });
+        }).then(function () { return true; }).catch(function () { return false; });
       }
+      try { new Notification(title, { body: body }); return Promise.resolve(true); } catch (err) { return Promise.resolve(false); }
     }
 
     function enableNotifications() {
@@ -522,7 +522,7 @@
         return mins >= parseMin(d.home);
       }
 
-      var id = setInterval(function () {
+      function runTick() {
         var ctx = engineRef.current;
         if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
         var now = new Date();
@@ -623,8 +623,12 @@
         }
 
         if (changed) setNudges({ lastFired: nf, interestPointer: newPointer });
-      }, 60000);
-      return function () { clearInterval(id); };
+      }
+      var id = setInterval(runTick, 60000);
+      function onVisible() { if (document.visibilityState === "visible") runTick(); }
+      document.addEventListener("visibilitychange", onVisible);
+      runTick();
+      return function () { clearInterval(id); document.removeEventListener("visibilitychange", onVisible); };
     }, []);
 
     function addInterest() {
@@ -1127,7 +1131,7 @@
         notifPermission === "default"
           ? e("button", { className: "asc-mono", style: { ...S.addBtn, padding: "6px 10px", fontSize: 10 }, onClick: enableNotifications }, "ENABLE")
           : notifPermission === "granted"
-          ? e("button", { className: "asc-mono", style: { ...S.addBtn, padding: "6px 10px", fontSize: 10 }, onClick: function () { fireNudge("Test nudge", "If you can see this, notifications are working."); } }, "TEST")
+          ? e("button", { className: "asc-mono", style: { ...S.addBtn, padding: "6px 10px", fontSize: 10 }, onClick: function () { fireNudge("Test nudge", "If you can see this, notifications are working.").then(function (ok) { if (!ok) alert("The browser refused to show it. Check Android Settings → Apps → Chrome → Notifications, and the site permission in Chrome."); }); } }, "TEST")
           : null
       )
     ));
